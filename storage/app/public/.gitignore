@@ -1,2 +1,6 @@
 *
 !.gitignore
+*
+!images/
+!images/catalog/
+!images/catalog/**
