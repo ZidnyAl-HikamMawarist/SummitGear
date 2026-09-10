@@ -11,6 +11,7 @@ use App\Services\AuditLogger;
 use Illuminate\Validation\Rule;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
+use App\Services\ImageOptimizer;
 
 class ItemForm extends Component
 {
@@ -129,7 +130,7 @@ class ItemForm extends Component
 
         $photoPath = $this->existing_photo_url;
         if ($this->photo) {
-            $photoPath = $this->photo->store('items', 'public');
+            $photoPath = ImageOptimizer::optimizeAndStore($this->photo, 'items', 'public', 800, 80);
             if ($this->existing_photo_url && Storage::disk('public')->exists($this->existing_photo_url)) {
                 Storage::disk('public')->delete($this->existing_photo_url);
             }

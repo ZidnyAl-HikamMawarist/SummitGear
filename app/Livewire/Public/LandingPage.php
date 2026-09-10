@@ -33,7 +33,7 @@ class LandingPage extends Component
         }
 
         return $query->get()->filter(function ($item) {
-            return !empty($item->photo_url) && file_exists(public_path($item->photo_url));
+            return !empty($item->photo_url) && (file_exists(public_path($item->photo_url)) || file_exists(public_path('storage/' . $item->photo_url)));
         });
     }
 

@@ -262,9 +262,10 @@
                         <div class="w-full aspect-[4/3] bg-[#f8f8f8] overflow-hidden relative">
                             @if($item->photo_url)
                             @php
-                                $photoPath = public_path($item->photo_url);
-                                $hasPhoto = !empty($item->photo_url) && file_exists($photoPath);
-                                $imgSrc = $hasPhoto ? asset($item->photo_url) : 'https://placehold.co/400x400/1e293b/ffffff?text=' . urlencode(str_replace(' ', "\n", $item->name));
+                                $inStorage = file_exists(public_path('storage/' . $item->photo_url));
+                                $inPublic = file_exists(public_path($item->photo_url));
+                                $hasPhoto = !empty($item->photo_url) && ($inStorage || $inPublic);
+                                $imgSrc = $inStorage ? asset('storage/' . $item->photo_url) : ($inPublic ? asset($item->photo_url) : 'https://placehold.co/400x400/1e293b/ffffff?text=' . urlencode(str_replace(' ', "\n", $item->name)));
                             @endphp
                             @if($hasPhoto)
                                 <img src="{{ $imgSrc }}" alt="{{ $item->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
