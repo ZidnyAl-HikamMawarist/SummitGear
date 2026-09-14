@@ -65,7 +65,7 @@ class Login extends Component
             if ($user->role === 'kasir') {
                 return redirect()->route('admin.transactions.create');
             } elseif ($user->role === 'gudang') {
-                return redirect()->route('admin.maintenance.kanban');
+                return redirect()->route('gudang.dashboard');
             }
             
             return redirect()->route('dashboard');

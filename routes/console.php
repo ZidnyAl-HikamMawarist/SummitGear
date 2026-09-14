@@ -69,7 +69,15 @@ use Illuminate\Support\Facades\Schedule;
 use App\Jobs\CalculateLatePenaltyJob;
 use App\Jobs\ReleaseHoldBookingJob;
 use App\Jobs\ExpireOnlineBookingJob;
+use App\Jobs\SendPickupReminderJob;
 
 Schedule::job(new CalculateLatePenaltyJob)->hourly();
 Schedule::job(new ReleaseHoldBookingJob)->everyThirtyMinutes();
 Schedule::job(new ExpireOnlineBookingJob)->hourly();
+Schedule::job(new SendPickupReminderJob)->everyThirtyMinutes();
+
+Artisan::command('booking:send-reminders', function () {
+    $this->info("Menjalankan pengiriman pengingat Hari-H jadwal pengambilan booking online...");
+    dispatch_sync(new SendPickupReminderJob());
+    $this->info("Pengingat Hari-H berhasil diproses dan dikirimkan.");
+})->purpose('Kirim email dan WA pengingat Hari-H pengambilan alat ke penyewa');

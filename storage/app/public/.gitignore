@@ -1,6 +1,8 @@
 *
 !.gitignore
-*
+
 !images/
-!images/catalog/
-!images/catalog/**
+!images/**
+
+!catalog/
+!catalog/**

@@ -13,7 +13,11 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'kasir.timeout'])->group(function () {
-    Route::get('/dashboard', Dashboard::class)->middleware('role:admin')->name('dashboard');
+    Route::get('/dashboard', Dashboard::class)->middleware('role:admin,kasir,gudang')->name('dashboard');
+
+    Route::get('/admin/dashboard', Dashboard::class)->middleware('role:admin')->name('admin.dashboard');
+    Route::get('/gudang/dashboard', \App\Livewire\Gudang\Dashboard::class)->middleware('role:admin,gudang')->name('gudang.dashboard');
+
     Route::post('/logout', function () {
         $user = auth()->user();
         if ($user) {
@@ -31,10 +35,6 @@ Route::middleware(['auth', 'kasir.timeout'])->group(function () {
         Route::get('/admin/audit-logs', \App\Livewire\Admin\AuditLog\Index::class)->name('admin.audit_logs');
         Route::get('/admin/settings', \App\Livewire\Admin\Setting\Index::class)->name('admin.settings');
         Route::get('/admin/analytics/dashboard', \App\Livewire\Admin\Analytics\Dashboard::class)->name('admin.analytics.dashboard');
-        
-        // Manajemen Master Barang (Tambah & Edit harga master hanya Admin)
-        Route::get('/admin/inventory/items/create', \App\Livewire\Admin\Inventory\ItemForm::class)->name('admin.inventory.items.create');
-        Route::get('/admin/inventory/items/{id}/edit', \App\Livewire\Admin\Inventory\ItemForm::class)->name('admin.inventory.items.edit');
     });
 
     // 2. Rute Khusus Kasir (Kasir & Transaksi Sewa Langsung)
@@ -53,9 +53,11 @@ Route::middleware(['auth', 'kasir.timeout'])->group(function () {
         Route::get('/admin/customers/{id}/edit', \App\Livewire\Admin\Customer\Form::class)->name('admin.customers.edit');
     });
 
-    // 3. Rute Gudang & Admin (Maintenance Kanban)
+    // 3. Rute Gudang & Admin (Maintenance Kanban & Kelola Katalog/Master Barang)
     Route::middleware(['role:admin,gudang'])->group(function () {
         Route::get('/admin/maintenance/kanban', \App\Livewire\Admin\Maintenance\Kanban::class)->name('admin.maintenance.kanban');
+        Route::get('/admin/inventory/items/create', \App\Livewire\Admin\Inventory\ItemForm::class)->name('admin.inventory.items.create');
+        Route::get('/admin/inventory/items/{id}/edit', \App\Livewire\Admin\Inventory\ItemForm::class)->name('admin.inventory.items.edit');
     });
 
     // 4. Rute Bersama (Admin, Kasir, & Gudang)

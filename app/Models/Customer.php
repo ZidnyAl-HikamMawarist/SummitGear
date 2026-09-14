@@ -8,7 +8,7 @@ class Customer extends Model
 {
     
     
-    protected $fillable = ['name', 'nik', 'phone', 'address', 'consent_at'];
+    protected $fillable = ['name', 'email', 'nik', 'phone', 'address', 'consent_at'];
 
     public function rentals()
     {

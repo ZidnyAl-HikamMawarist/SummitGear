@@ -26,8 +26,8 @@ class CheckOut extends Component
         $this->rentalId = $rentalId;
         $this->rental = Rental::with(['customer', 'details.itemUnit.item'])->findOrFail($rentalId);
 
-        if ($this->rental->status !== 'BOOKED') {
-            session()->flash('message', 'Transaksi ini tidak dalam status BOOKED (status saat ini: ' . $this->rental->status . ')');
+        if (!in_array($this->rental->status, ['BOOKED', 'DP_PAID', 'PAID'])) {
+            session()->flash('message', 'Transaksi ini tidak dalam status BOOKED / DP_PAID / PAID (status saat ini: ' . $this->rental->status . ')');
         }
 
         foreach ($this->rental->details as $detail) {
@@ -40,9 +40,9 @@ class CheckOut extends Component
 
     public function submitCheckOut()
     {
-        // Guard: hanya rental berstatus BOOKED yang bisa di-checkout
-        if ($this->rental->status !== 'BOOKED') {
-            $this->addError('error', "Transaksi tidak dalam status BOOKED (status: {$this->rental->status}). Tidak dapat diproses.");
+        // Guard: hanya rental berstatus BOOKED, DP_PAID, atau PAID yang bisa di-checkout
+        if (!in_array($this->rental->status, ['BOOKED', 'DP_PAID', 'PAID'])) {
+            $this->addError('error', "Transaksi tidak dalam status BOOKED / DP_PAID / PAID (status: {$this->rental->status}). Tidak dapat diproses.");
             return;
         }
 

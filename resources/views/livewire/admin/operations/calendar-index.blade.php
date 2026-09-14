@@ -4,43 +4,43 @@
     <main class="main-content">
         <x-admin-topbar title="Kalender Visual Ketersediaan Alat" />
 
-        <div class="content-area">
+        <div class="mx-auto w-full max-w-7xl px-6 py-6 space-y-6">
             <!-- Header -->
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 class="text-2xl font-bold text-navy">Kalender Visual Ketersediaan Alat (Grid)</h2>
-                    <p class="text-sm text-gray-500 mt-0.5">Monitoring matriks booking unit fisik secara real-time untuk mencegah jadwal ganda (double-booking).</p>
+                    <h1 class="text-2xl font-bold tracking-tight text-navy">Kalender Visual Ketersediaan Alat</h1>
+                    <p class="text-sm text-gray-500 mt-1">Monitoring matriks booking unit fisik secara real-time untuk mencegah jadwal ganda (double-booking).</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="badge badge-neutral font-semibold">
+                    <flux:badge color="zinc" size="sm">
                         Jendela Booking: <strong class="text-navy ml-1">{{ $bookingWindowDays }} Hari</strong>
-                    </span>
+                    </flux:badge>
                     @if(auth()->user()->role === 'kasir')
-                    <a href="{{ route('admin.transactions.create') }}" class="btn text-xs font-bold text-white shadow-md transition" style="background-color: var(--color-coral); border-radius: 10px; padding: 0.65rem 1.25rem;">
-                        + Buat Booking Baru
-                    </a>
+                    <flux:button href="{{ route('admin.transactions.create') }}" variant="primary" icon="plus">
+                        Buat Booking Baru
+                    </flux:button>
                     @endif
                 </div>
             </div>
 
             <!-- Controls Card -->
-            <div class="sg-card mb-4 p-4">
+            <flux:card>
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <!-- Navigation & Jump to Date -->
                     <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                        <button type="button" wire:click="prevPeriod" class="btn text-xs font-bold text-navy bg-white border border-gray-300 hover:bg-gray-50 rounded-lg" style="padding: 0.5rem 0.85rem;">
+                        <flux:button size="sm" variant="filled" wire:click="prevPeriod">
                             ‹ 7 Hari Lalu
-                        </button>
-                        <button type="button" wire:click="todayPeriod" class="btn text-xs font-bold text-white shadow-sm rounded-lg" style="background-color: var(--color-navy); padding: 0.5rem 0.85rem;">
+                        </flux:button>
+                        <flux:button size="sm" variant="primary" wire:click="todayPeriod">
                             Hari Ini
-                        </button>
-                        <button type="button" wire:click="nextPeriod" class="btn text-xs font-bold text-navy bg-white border border-gray-300 hover:bg-gray-50 rounded-lg" style="padding: 0.5rem 0.85rem;">
+                        </flux:button>
+                        <flux:button size="sm" variant="filled" wire:click="nextPeriod">
                             7 Hari Kedepan ›
-                        </button>
+                        </flux:button>
 
-                        <div class="flex items-center gap-1.5 ml-2">
-                            <span class="text-xs font-bold text-gray-500">Mulai:</span>
-                            <input type="date" wire:model.live="startDate" class="form-control text-xs font-semibold p-1.5" style="width: auto;">
+                        <div class="flex items-center gap-2 ml-2">
+                            <span class="text-xs font-semibold text-gray-500">Mulai:</span>
+                            <input type="date" wire:model.live="startDate" class="text-xs font-semibold px-2.5 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/20">
                         </div>
 
                         <span class="text-xs font-bold text-gray-700 ml-1 px-3 py-1.5 bg-gray-100 rounded-lg">
@@ -51,7 +51,7 @@
                     <!-- Category Filter -->
                     <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
                         <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Kategori:</span>
-                        <select wire:model.live="categoryFilter" class="form-control text-xs font-semibold w-auto">
+                        <select wire:model.live="categoryFilter" class="text-xs font-semibold px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/20">
                             <option value="ALL">Semua Kategori</option>
                             @foreach($categories as $cat)
                                 <option value="{{ $cat }}">{{ $cat }}</option>
@@ -59,20 +59,20 @@
                         </select>
                     </div>
                 </div>
-            </div>
+            </flux:card>
 
             <!-- Legend Badges Bar -->
-            <div class="sg-card mb-4 p-3 flex flex-wrap gap-2.5 items-center">
+            <flux:card class="py-3 px-4 flex flex-wrap gap-3 items-center">
                 <span class="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">Status:</span>
                 <span class="matrix-legend-badge legend-ready"><span class="legend-dot"></span> Tersedia (Ready)</span>
                 <span class="matrix-legend-badge legend-booked"><span class="legend-dot"></span> Booked (Dipesan)</span>
                 <span class="matrix-legend-badge legend-rented"><span class="legend-dot"></span> Rented Out (Keluar)</span>
                 <span class="matrix-legend-badge legend-cleaning"><span class="legend-dot"></span> Cleaning (Cuci)</span>
                 <span class="matrix-legend-badge legend-maintenance"><span class="legend-dot"></span> Maintenance / Hilang</span>
-            </div>
+            </flux:card>
 
             <!-- Interactive Grid Table -->
-            <div class="sg-card p-0 overflow-hidden shadow-sm" style="border: 1px solid #E2E8F0; border-radius: 16px;">
+            <flux:card class="p-0 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="booking-matrix-table">
                         <thead>
@@ -137,7 +137,7 @@
                 <div class="p-4 border-t border-gray-100 bg-white">
                     {{ $units->links('vendor.pagination.summitgear') }}
                 </div>
-            </div>
+            </flux:card>
         </div>
     </main>
 </div>

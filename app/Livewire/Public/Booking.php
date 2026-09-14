@@ -9,13 +9,21 @@ use App\Models\InventoryItem;
 use App\Models\PricingRule;
 use App\Models\Rental;
 use App\Models\RentalDetail;
+use App\Models\Payment;
+use App\Services\AuditLogger;
+use App\Services\WhatsAppService;
+use App\Mail\BookingInvoiceMail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use App\Jobs\ReleaseHoldBookingJob;
 use Carbon\Carbon;
 
 class Booking extends Component
 {
     // Customer Info
     public $name = '';
+    public $email = '';
     public $phone = '';
     public $phone_number = '';
     public $nik = '';
@@ -31,7 +39,7 @@ class Booking extends Component
     public $searchQuery = '';
     public $selectedCategory = 'all';
     public $isCartOpen = false;
-    public $cartStep = 'items'; // 'items' | 'form'
+    public $cartStep = 'items'; // 'items' | 'form' | 'payment'
     
     // Progressive Loading / Infinite Scroll
     public $perPage = 12;
@@ -39,6 +47,19 @@ class Booking extends Component
     
     // Totals
     public $total_price = 0;
+
+    // Payment Step & Anti-Hoarding State
+    public $activeRentalId = null;
+    public $activeRentalCode = null;
+    public $expiresAt = null;
+    public $remainingSeconds = 600;
+    public $paymentOption = 'dp'; // 'dp' (30%) or 'full' (100%)
+    public $selectedPaymentMethod = 'qris'; // 'qris', 'gopay', 'bca_va', 'mandiri_va'
+    public $isExpiredModalOpen = false;
+
+    // Success Confirmation Modal
+    public $showSuccessModal = false;
+    public $confirmedBooking = null;
 
     public function mount()
     {
@@ -76,6 +97,18 @@ class Booking extends Component
             $this->addError('cart', 'Keranjang masih kosong. Silakan pilih alat terlebih dahulu.');
             return;
         }
+
+        if (!$this->start_date) {
+            $this->start_date = now()->format('Y-m-d');
+        }
+        if (!$this->end_date) {
+            $this->end_date = $this->start_date;
+        }
+        if (!$this->pickup_time) {
+            $this->pickup_time = '10:00';
+        }
+
+        $this->calculateTotalPrice();
         $this->cartStep = 'form';
     }
 
@@ -90,6 +123,28 @@ class Booking extends Component
             $this->start_date = now()->format('Y-m-d');
         }
         $this->end_date = Carbon::parse($this->start_date)->addDays(max(0, $days - 1))->format('Y-m-d');
+        $this->calculateTotalPrice();
+    }
+
+    public function updatedStartDate($value)
+    {
+        $today = now()->format('Y-m-d');
+        if ($value && $value < $today) {
+            $this->start_date = $today;
+        }
+        if ($this->start_date && $this->end_date && $this->end_date < $this->start_date) {
+            $this->end_date = $this->start_date;
+        }
+        $this->calculateTotalPrice();
+    }
+
+    public function updatedEndDate($value)
+    {
+        $today = now()->format('Y-m-d');
+        $minDate = $this->start_date ?: $today;
+        if ($value && $value < $minDate) {
+            $this->end_date = $minDate;
+        }
         $this->calculateTotalPrice();
     }
 
@@ -179,6 +234,34 @@ class Booking extends Component
         $this->perPage = 12;
     }
 
+    public function getEstimatedTotalPriceProperty()
+    {
+        if ($this->duration_days > 0 && $this->total_price > 0) {
+            return $this->total_price;
+        }
+
+        return $this->subtotal_per_day;
+    }
+
+    public function getDownPaymentAmountProperty()
+    {
+        $target = $this->duration_days > 0 ? $this->total_price : $this->subtotal_per_day;
+        $dp = round(($target * 0.30) / 1000) * 1000;
+        return (int) max(10000, min($target, $dp));
+    }
+
+    public function getPayableAmountProperty()
+    {
+        $target = $this->duration_days > 0 ? $this->total_price : $this->subtotal_per_day;
+        return (int) ($this->paymentOption === 'dp' ? $this->downPaymentAmount : $target);
+    }
+
+    public function getRemainingBalanceProperty()
+    {
+        $target = $this->duration_days > 0 ? $this->total_price : $this->subtotal_per_day;
+        return (int) max(0, $target - $this->payableAmount);
+    }
+
     public function getAvailableItemsProperty()
     {
         $cartUnitIds = $this->getAllCartUnitIds();
@@ -201,35 +284,61 @@ class Booking extends Component
         // Ambil hanya sejumlah $perPage yang terlihat di layar untuk performa maksimal
         $items = $query->take($this->perPage)->get();
 
+        if ($items->isEmpty()) {
+            return $items;
+        }
+
         $hasDates = !empty($this->start_date) && !empty($this->end_date);
         $start = $hasDates ? Carbon::parse($this->start_date)->startOfDay() : null;
         $end = $hasDates ? Carbon::parse($this->end_date)->endOfDay() : null;
 
-        $items->map(function ($item) use ($hasDates, $start, $end, $cartUnitIds) {
-            $unitQuery = ItemUnit::where('item_id', $item->id)
-                ->where('status', 'Available')
-                ->whereNotIn('id', $cartUnitIds);
+        $itemIds = $items->pluck('id');
 
-            if ($hasDates) {
-                $unitQuery->whereDoesntHave('rentalDetails.rental', function($q) use ($start, $end) {
-                    $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
-                      ->where(function($query) use ($start, $end) {
-                          $query->whereBetween('start_date', [$start, $end])
-                                ->orWhereBetween('end_date', [$start, $end])
-                                ->orWhere(function($subQuery) use ($start, $end) {
-                                    $subQuery->where('start_date', '<=', $start)
-                                             ->where('end_date', '>=', $end);
+        $unitCountsQuery = ItemUnit::whereIn('item_id', $itemIds)
+            ->where('status', 'Available');
+
+        if (!empty($cartUnitIds)) {
+            $unitCountsQuery->whereNotIn('id', $cartUnitIds);
+        }
+
+        if ($hasDates) {
+            $unitCountsQuery->whereDoesntHave('rentalDetails.rental', function($q) use ($start, $end) {
+                $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
+                  ->where(function ($subStatus) {
+                      $subStatus->where('status', '!=', 'PENDING_PAYMENT')
+                                ->orWhere(function ($expQ) {
+                                    $expQ->where('status', 'PENDING_PAYMENT')
+                                         ->where(function ($inner) {
+                                             $inner->whereNull('expires_at')
+                                                   ->orWhere('expires_at', '>', Carbon::now());
+                                         });
                                 });
-                      });
-                });
-            }
+                  })
+                  ->where(function($query) use ($start, $end) {
+                      $query->whereBetween('start_date', [$start, $end])
+                            ->orWhereBetween('end_date', [$start, $end])
+                            ->orWhere(function($subQuery) use ($start, $end) {
+                                $subQuery->where('start_date', '<=', $start)
+                                         ->where('end_date', '>=', $end);
+                            });
+                  });
+            });
+        }
 
-            $availableCount = $unitQuery->count();
-            $item->available_count = $availableCount;
-            $inCart = collect($this->cart)->firstWhere('inventory_item_id', $item->id);
-            $item->cart_quantity = $inCart ? $inCart['quantity'] : 0;
-            return $item;
-        });
+        $availableCounts = $unitCountsQuery
+            ->selectRaw('item_id, count(*) as total')
+            ->groupBy('item_id')
+            ->pluck('total', 'item_id');
+
+        $cartQuantities = [];
+        foreach ($this->cart as $cItem) {
+            $cartQuantities[$cItem['inventory_item_id']] = $cItem['quantity'];
+        }
+
+        foreach ($items as $item) {
+            $item->available_count = (int) ($availableCounts[$item->id] ?? 0);
+            $item->cart_quantity = (int) ($cartQuantities[$item->id] ?? 0);
+        }
 
         return $items;
     }
@@ -254,6 +363,16 @@ class Booking extends Component
             $end = Carbon::parse($this->end_date)->endOfDay();
             $unitQuery->whereDoesntHave('rentalDetails.rental', function($q) use ($start, $end) {
                 $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
+                  ->where(function ($subStatus) {
+                      $subStatus->where('status', '!=', 'PENDING_PAYMENT')
+                                ->orWhere(function ($expQ) {
+                                    $expQ->where('status', 'PENDING_PAYMENT')
+                                         ->where(function ($inner) {
+                                             $inner->whereNull('expires_at')
+                                                   ->orWhere('expires_at', '>', Carbon::now());
+                                         });
+                                });
+                  })
                   ->where(function($query) use ($start, $end) {
                       $query->whereBetween('start_date', [$start, $end])
                             ->orWhereBetween('end_date', [$start, $end])
@@ -266,6 +385,24 @@ class Booking extends Component
         }
 
         $unit = $unitQuery->first();
+
+        if (!$unit) {
+            // Lazy release of any expired hold rentals so stock is reclaimed immediately
+            $hasExpired = Rental::where('status', Rental::STATUS_PENDING_PAYMENT)
+                ->where(function ($q) {
+                    $q->where('expires_at', '<=', Carbon::now())
+                      ->orWhere(function ($sq) {
+                          $sq->whereNull('expires_at')
+                             ->where('created_at', '<=', Carbon::now()->subMinutes(10));
+                      });
+                })
+                ->exists();
+
+            if ($hasExpired) {
+                (new ReleaseHoldBookingJob())->handle();
+                $unit = $unitQuery->first();
+            }
+        }
 
         if (!$unit) {
             $this->addError('cart', $hasDates ? 'Stok unit tidak tersedia untuk tanggal tersebut.' : 'Stok unit tidak tersedia.');
@@ -370,12 +507,32 @@ class Booking extends Component
     {
         $this->cartStep = 'form';
 
-        if ($this->phone_number && !$this->phone) {
-            $this->phone = '+62' . $this->phone_number;
+        if (!$this->start_date) {
+            $this->start_date = now()->format('Y-m-d');
+        }
+        if (!$this->end_date) {
+            $this->end_date = $this->start_date;
+        }
+        if (!$this->pickup_time) {
+            $this->pickup_time = '10:00';
         }
 
+        // Clean & sanitize phone number
+        $cleanPhone = preg_replace('/[^0-9]/', '', (string)$this->phone_number);
+        if (str_starts_with($cleanPhone, '0')) {
+            $cleanPhone = substr($cleanPhone, 1);
+        } elseif (str_starts_with($cleanPhone, '62')) {
+            $cleanPhone = substr($cleanPhone, 2);
+        }
+        $this->phone_number = substr($cleanPhone, 0, 13);
+        $this->phone = $this->phone_number ? '+62' . $this->phone_number : '';
+
+        // Clean & sanitize NIK
+        $this->nik = substr(preg_replace('/[^0-9]/', '', (string)$this->nik), 0, 16);
+
         $this->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|min:3|max:255',
+            'email' => 'nullable|email|max:255',
             'phone_number' => [
                 'required',
                 'string',
@@ -389,13 +546,16 @@ class Booking extends Component
                 'size:16',
                 'regex:/^[0-9]{16}$/'
             ],
-            'address' => 'required|string|max:500',
+            'address' => 'required|string|min:5|max:500',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'pickup_time' => 'required|date_format:H:i',
+            'pickup_time' => 'required',
             'cart' => 'required|array|min:1',
         ], [
             'name.required' => 'Nama lengkap wajib diisi sesuai KTP.',
+            'name.min' => 'Nama lengkap minimal 3 karakter.',
+            'email.required' => 'Alamat email wajib diisi untuk pengiriman invoice.',
+            'email.email' => 'Format alamat email tidak valid.',
             'phone_number.required' => 'Nomor WhatsApp wajib diisi.',
             'phone_number.min' => 'Nomor WhatsApp minimal 9 digit angka (setelah +62).',
             'phone_number.max' => 'Nomor WhatsApp maksimal 13 digit angka.',
@@ -403,19 +563,55 @@ class Booking extends Component
             'nik.required' => 'NIK KTP wajib diisi.',
             'nik.size' => 'NIK KTP harus tepat 16 digit.',
             'nik.regex' => 'NIK harus berupa 16 digit angka.',
-            'address.required' => 'Alamat tinggal wajib diisi.',
+            'address.required' => 'Alamat tinggal / domisili wajib diisi.',
+            'address.min' => 'Alamat tinggal minimal 5 karakter.',
             'pickup_time.required' => 'Jam pengambilan booking wajib diisi.',
-            'pickup_time.date_format' => 'Format jam pengambilan tidak valid (HH:MM).',
             'cart.min' => 'Pilih minimal 1 barang untuk dipesan.',
         ]);
+
+        // Anti-Hoarding & Booking Limit: Cek apakah user memiliki pending booking aktif
+        $activePending = Rental::where('status', Rental::STATUS_PENDING_PAYMENT)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>', Carbon::now());
+            })
+            ->whereHas('customer', function ($q) use ($cleanPhone) {
+                $q->where('phone', $this->phone)
+                  ->orWhere('phone', '0' . $cleanPhone)
+                  ->orWhere('phone', $cleanPhone)
+                  ->orWhere('phone', 'like', '%' . $cleanPhone)
+                  ->orWhere('nik', $this->nik);
+            })
+            ->first();
+
+        if ($activePending) {
+            $secondsLeft = $activePending->expires_at ? Carbon::now()->diffInSeconds($activePending->expires_at, false) : 600;
+            $minsLeft = max(1, ceil($secondsLeft / 60));
+            $this->addError('booking_limit', "Anda masih memiliki transaksi booking aktif ({$activePending->rental_code}) yang belum dibayar. Mohon selesaikan pembayaran tersebut atau tunggu {$minsLeft} menit hingga batas waktu berakhir.");
+            $this->addError('anti_hoarding', "Anda masih memiliki transaksi booking aktif ({$activePending->rental_code}) yang belum dibayar.");
+            return;
+        }
 
         DB::beginTransaction();
         try {
             $start = Carbon::parse($this->start_date)->startOfDay();
             $end = Carbon::parse($this->end_date)->endOfDay();
 
-            // Cegah double-booking / race condition unit
+            // Prepare confirmed items summary
+            $confirmedItems = [];
+            foreach ($this->cart as $cartGroup) {
+                $confirmedItems[] = [
+                    'name' => $cartGroup['item_name'],
+                    'quantity' => $cartGroup['quantity'],
+                    'price_per_day' => (int) $cartGroup['base_price'],
+                    'subtotal' => (int) ($cartGroup['base_price'] * $cartGroup['quantity'] * max(1, $this->duration_days)),
+                    'photo_url' => $cartGroup['photo_url'] ?? null,
+                ];
+            }
+
+            // Cegah double-booking / race condition unit dengan PESSIMISTIC LOCKING (ACID Isolation)
             $allUnits = [];
+            $allUnitIds = [];
             foreach ($this->cart as $cartGroup) {
                 foreach ($cartGroup['unit_ids'] as $unitId) {
                     $allUnits[] = [
@@ -423,13 +619,36 @@ class Booking extends Component
                         'item_name' => $cartGroup['item_name'],
                         'base_price' => $cartGroup['base_price'],
                     ];
+                    $allUnitIds[] = $unitId;
                 }
+            }
+
+            // Kunci baris unit fisik di PostgreSQL agar transaksi concurrent harus antre
+            $lockedUnits = ItemUnit::whereIn('id', $allUnitIds)
+                ->where('status', 'Available')
+                ->lockForUpdate()
+                ->get();
+
+            if ($lockedUnits->count() !== count($allUnitIds)) {
+                $this->addError('cart', 'Sebagian unit alat baru saja disewa oleh orang lain. Silakan periksa kembali keranjang Anda.');
+                DB::rollBack();
+                return;
             }
 
             foreach ($allUnits as $unitItem) {
                 $isConflicted = RentalDetail::where('item_unit_id', $unitItem['unit_id'])
                     ->whereHas('rental', function ($q) use ($start, $end) {
                         $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
+                          ->where(function ($subStatus) {
+                              $subStatus->where('status', '!=', 'PENDING_PAYMENT')
+                                        ->orWhere(function ($expQ) {
+                                            $expQ->where('status', 'PENDING_PAYMENT')
+                                                 ->where(function ($inner) {
+                                                     $inner->whereNull('expires_at')
+                                                           ->orWhere('expires_at', '>', Carbon::now());
+                                                 });
+                                        });
+                          })
                           ->where(function ($query) use ($start, $end) {
                               $query->whereBetween('start_date', [$start, $end])
                                     ->orWhereBetween('end_date', [$start, $end])
@@ -438,7 +657,9 @@ class Booking extends Component
                                             ->where('end_date', '>=', $end);
                                     });
                           });
-                    })->exists();
+                    })
+                    ->lockForUpdate()
+                    ->exists();
 
                 if ($isConflicted) {
                     $this->addError('cart', "Unit {$unitItem['item_name']} sudah terbooking oleh orang lain untuk tanggal tersebut.");
@@ -462,6 +683,7 @@ class Booking extends Component
             if (!$customer) {
                 $customer = Customer::create([
                     'name' => $this->name,
+                    'email' => $this->email,
                     'phone' => $this->phone,
                     'nik' => $this->nik,
                     'address' => $this->address,
@@ -470,6 +692,7 @@ class Booking extends Component
             } else {
                 $customer->update([
                     'name' => $this->name,
+                    'email' => $this->email ?: $customer->email,
                     'phone' => $this->phone,
                     'nik' => $this->nik,
                     'address' => $this->address ?: $customer->address,
@@ -482,9 +705,10 @@ class Booking extends Component
             $nextSeq = $lastRental ? ((int) substr($lastRental->rental_code, -4)) + 1 : 1;
             $rentalCode = "TRX-{$datePrefix}-" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
 
-            // Create Rental (PENDING_PAYMENT, online)
+            // Create Rental dengan batas waktu hold 10 menit
             $pickupDateTime = Carbon::parse($this->start_date . ' ' . $this->pickup_time);
             $scheduledReturn = Carbon::parse($this->end_date . ' 18:00:00');
+            $expiresAt = Carbon::now()->addMinutes(10);
 
             $rental = Rental::create([
                 'customer_id' => $customer->id,
@@ -494,8 +718,11 @@ class Booking extends Component
                 'scheduled_return_time' => $scheduledReturn,
                 'total_price' => $this->total_price,
                 'discount' => 0,
-                'status' => 'PENDING_PAYMENT',
+                'status' => Rental::STATUS_PENDING_PAYMENT,
+                'down_payment_amount' => 0,
+                'payment_type' => 'dp',
                 'source' => 'online',
+                'expires_at' => $expiresAt,
             ]);
 
             // Create Rental Details
@@ -507,23 +734,288 @@ class Booking extends Component
                 ]);
             }
 
-            // Kirim notifikasi WA (Mocking / Live)
-            \App\Services\WhatsAppService::sendBookingConfirmation($rental);
+            AuditLogger::log('CREATE', 'Rental', $rental->id, "Reservasi online dibuat ({$rentalCode}) dengan hold stok 10 menit. Menunggu pembayaran DP/Lunas.");
 
             DB::commit();
 
-            // Clear cart
-            $this->cart = [];
-            $this->total_price = 0;
-            
-            $formattedPickup = $pickupDateTime->translatedFormat('d M Y \p\u\k\u\l H:i') . ' WIB';
-            session()->flash('message', "Booking berhasil dengan kode: <strong>{$rentalCode}</strong>.<br>Jadwal Pengambilan: <strong>{$formattedPickup}</strong>.<br><span class='text-xs text-amber-700 font-semibold'>*Perhatian: Toleransi batas pengambilan maksimal 2 jam setelah jadwal. Jika barang tidak diambil, kasir berhak membatalkan booking dan stok unit kembali ke gudang.</span>");
-            return redirect()->route('home');
+            // Set state untuk Step 3: Pembayaran / DP dengan Countdown Timer 10 Menit
+            $this->activeRentalId = $rental->id;
+            $this->activeRentalCode = $rentalCode;
+            $this->expiresAt = $expiresAt->toIso8601String();
+            $this->remainingSeconds = 600;
+            $this->paymentOption = 'dp';
+            $this->selectedPaymentMethod = 'qris';
+            $this->cartStep = 'payment';
+            $this->isCartOpen = true;
+
+            $pickupTolerance = $pickupDateTime->copy()->addHours(2);
+            $formattedPickup = $pickupDateTime->translatedFormat('d F Y, \p\u\k\u\l H:i') . ' WIB';
+            $toleranceTime = $pickupTolerance->translatedFormat('H:i') . ' WIB';
+
+            // Siapkan payload awal
+            $this->confirmedBooking = [
+                'rental_code' => $rentalCode,
+                'customer_name' => $this->name,
+                'customer_email' => $this->email,
+                'customer_phone' => $this->phone,
+                'customer_nik' => $this->nik,
+                'customer_address' => $this->address,
+                'start_date' => $this->start_date,
+                'end_date' => $this->end_date,
+                'duration_days' => max(1, $this->duration_days),
+                'pickup_time' => $this->pickup_time,
+                'pickup_formatted' => $formattedPickup,
+                'tolerance_formatted' => $toleranceTime,
+                'total_price' => $this->total_price,
+                'total_formatted' => 'Rp ' . number_format($this->total_price, 0, ',', '.'),
+                'items' => $confirmedItems,
+                'created_at' => now()->toIso8601String(),
+                'status' => 'MENUNGGU PEMBAYARAN',
+            ];
 
         } catch (\Exception $e) {
             DB::rollBack();
             $this->addError('booking', 'Terjadi kesalahan sistem: ' . $e->getMessage());
         }
+    }
+
+    public function setPaymentOption($option)
+    {
+        if (in_array($option, ['dp', 'full'])) {
+            $this->paymentOption = $option;
+        }
+    }
+
+    public function setPaymentMethod($method)
+    {
+        $this->selectedPaymentMethod = $method;
+    }
+
+    public function checkBookingStatus()
+    {
+        if (!$this->activeRentalId) return;
+
+        $rental = Rental::find($this->activeRentalId);
+        if (!$rental) {
+            $this->activeRentalId = null;
+            $this->cartStep = 'items';
+            return;
+        }
+
+        if ($rental->status !== Rental::STATUS_PENDING_PAYMENT) {
+            if (in_array($rental->status, [Rental::STATUS_DP_PAID, Rental::STATUS_PAID, Rental::STATUS_BOOKED])) {
+                $this->showSuccessModal = true;
+                $this->isCartOpen = false;
+                $this->cart = [];
+                $this->activeRentalId = null;
+            } elseif ($rental->status === Rental::STATUS_CANCELLED) {
+                $this->handleExpiredBooking();
+            }
+            return;
+        }
+
+        if ($rental->expires_at && Carbon::now()->greaterThan($rental->expires_at)) {
+            $this->handleExpiredBooking();
+        } else {
+            $this->remainingSeconds = max(0, Carbon::now()->diffInSeconds($rental->expires_at, false));
+        }
+    }
+
+    public function confirmOnlinePayment()
+    {
+        if (!$this->activeRentalId) {
+            $this->addError('payment', 'Sesi booking tidak ditemukan.');
+            return;
+        }
+
+        DB::beginTransaction();
+        try {
+            $rental = Rental::with(['customer', 'details.itemUnit.item'])
+                ->where('id', $this->activeRentalId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$rental) {
+                throw new \Exception('Data booking tidak ditemukan.');
+            }
+
+            if ($rental->status !== Rental::STATUS_PENDING_PAYMENT) {
+                throw new \Exception('Status transaksi tidak valid untuk pembayaran.');
+            }
+
+            if ($rental->expires_at && Carbon::now()->greaterThan($rental->expires_at)) {
+                $this->handleExpiredBooking();
+                DB::rollBack();
+                return;
+            }
+
+            $isDp = ($this->paymentOption === 'dp');
+            $calculatedDp = (int) max(10000, min($rental->total_price, round(($rental->total_price * 0.30) / 1000) * 1000));
+            $amount = $isDp ? $calculatedDp : $rental->total_price;
+            $paymentType = $isDp ? 'DP' : 'FULL';
+            $newStatus = $isDp ? Rental::STATUS_DP_PAID : Rental::STATUS_PAID;
+
+            Payment::create([
+                'rental_id' => $rental->id,
+                'type' => $paymentType,
+                'method' => strtoupper($this->selectedPaymentMethod),
+                'amount' => $amount,
+                'paid_at' => Carbon::now(),
+            ]);
+
+            $rental->update([
+                'status' => $newStatus,
+                'down_payment_amount' => $isDp ? $amount : 0,
+                'payment_type' => $this->paymentOption,
+                'expires_at' => null, // Countdown selesai & stok aman permanen!
+            ]);
+
+            AuditLogger::log(
+                'PAYMENT',
+                'Rental',
+                $rental->id,
+                "Pembayaran online berhasil via {$this->selectedPaymentMethod} ({$paymentType}: Rp " . number_format($amount, 0, ',', '.') . "). Status rental menjadi {$newStatus}."
+            );
+
+            // Kirim notifikasi WA & Email
+            try {
+                WhatsAppService::sendBookingConfirmation($rental);
+            } catch (\Throwable $waEx) {
+                Log::warning("Gagal mengirim WA booking: " . $waEx->getMessage());
+            }
+
+            try {
+                if (!empty($rental->customer->email)) {
+                    Mail::to($rental->customer->email)->send(new BookingInvoiceMail($rental));
+                }
+            } catch (\Throwable $mailEx) {
+                Log::warning("Gagal mengirim email invoice: " . $mailEx->getMessage());
+            }
+
+            DB::commit();
+
+            // Payload konfirmasi booking sukses
+            $pickupTime = Carbon::parse($rental->start_date);
+            $pickupTolerance = $pickupTime->copy()->addHours(2);
+            $formattedPickup = $pickupTime->translatedFormat('d F Y, \p\u\k\u\l H:i') . ' WIB';
+            $toleranceTime = $pickupTolerance->translatedFormat('H:i') . ' WIB';
+
+            $items = [];
+            foreach ($rental->details as $d) {
+                $items[] = [
+                    'name' => $d->itemUnit?->item?->name ?? 'Peralatan',
+                    'quantity' => 1,
+                    'price_per_day' => (int) $d->price_per_day,
+                ];
+            }
+
+            $this->confirmedBooking = array_merge([
+                'rental_code' => $rental->rental_code,
+                'customer_name' => $rental->customer->name ?? '',
+                'customer_email' => $rental->customer->email ?? '',
+                'customer_phone' => $rental->customer->phone ?? '',
+                'customer_nik' => $rental->customer->nik ?? '',
+                'start_date' => Carbon::parse($rental->start_date)->format('Y-m-d'),
+                'end_date' => Carbon::parse($rental->end_date)->format('Y-m-d'),
+                'pickup_time' => $pickupTime->format('H:i'),
+                'pickup_formatted' => $formattedPickup,
+                'tolerance_formatted' => $toleranceTime,
+                'total_price' => $rental->total_price,
+                'total_formatted' => 'Rp ' . number_format($rental->total_price, 0, ',', '.'),
+                'items' => $items,
+            ], $this->confirmedBooking ?? [], [
+                'down_payment_amount' => $rental->down_payment_amount,
+                'balance_due' => $rental->balance_due,
+                'payment_type' => $this->paymentOption,
+                'payment_method' => strtoupper($this->selectedPaymentMethod),
+                'payment_status_label' => $isDp ? 'DP TERBAYAR (30%)' : 'LUNAS (100%)',
+                'status' => $isDp ? 'DP TERBAYAR - MENUNGGU DIAMBIL' : 'LUNAS - MENUNGGU DIAMBIL',
+            ]);
+
+            $this->isCartOpen = false;
+            $this->showSuccessModal = true;
+            $this->cart = [];
+            $this->total_price = 0;
+            $this->activeRentalId = null;
+
+            $this->dispatch('booking-confirmed', booking: $this->confirmedBooking);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->addError('payment', 'Gagal memproses konfirmasi pembayaran: ' . $e->getMessage());
+        }
+    }
+
+    public function handleExpiredBooking()
+    {
+        if ($this->activeRentalId) {
+            DB::beginTransaction();
+            try {
+                $rental = Rental::with('details.itemUnit')->find($this->activeRentalId);
+                if ($rental && $rental->status === Rental::STATUS_PENDING_PAYMENT) {
+                    $rental->update([
+                        'status' => Rental::STATUS_CANCELLED,
+                        'expires_at' => null,
+                    ]);
+
+                    foreach ($rental->details as $detail) {
+                        if ($detail->itemUnit) {
+                            $detail->itemUnit->update(['status' => 'Available']);
+                        }
+                    }
+
+                    AuditLogger::log('EXPIRED', 'Rental', $rental->id, "Booking online {$rental->rental_code} dibatalkan otomatis karena melewati batas waktu pembayaran 10 menit. Stok unit dikembalikan ke gudang.");
+                }
+                DB::commit();
+            } catch (\Throwable $t) {
+                DB::rollBack();
+            }
+        }
+
+        $this->isExpiredModalOpen = true;
+        $this->activeRentalId = null;
+        $this->cartStep = 'items';
+    }
+
+    public function cancelActiveBooking()
+    {
+        if ($this->activeRentalId) {
+            DB::beginTransaction();
+            try {
+                $rental = Rental::with('details.itemUnit')->find($this->activeRentalId);
+                if ($rental && $rental->status === Rental::STATUS_PENDING_PAYMENT) {
+                    $rental->update([
+                        'status' => Rental::STATUS_CANCELLED,
+                        'expires_at' => null,
+                    ]);
+
+                    foreach ($rental->details as $detail) {
+                        if ($detail->itemUnit) {
+                            $detail->itemUnit->update(['status' => 'Available']);
+                        }
+                    }
+
+                    AuditLogger::log('CANCEL', 'Rental', $rental->id, "Pelanggan membatalkan booking online {$rental->rental_code} pada tahap pembayaran. Stok unit kembali ke gudang.");
+                }
+                DB::commit();
+            } catch (\Throwable $t) {
+                DB::rollBack();
+            }
+        }
+
+        $this->activeRentalId = null;
+        $this->cartStep = 'items';
+    }
+
+    public function closeExpiredModal()
+    {
+        $this->isExpiredModalOpen = false;
+    }
+
+    public function closeSuccessModal()
+    {
+        $this->showSuccessModal = false;
+        return redirect()->route('home');
     }
 
     public function render()

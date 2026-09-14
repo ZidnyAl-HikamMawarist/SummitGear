@@ -43,7 +43,7 @@ class HandoverIndex extends Component
             ->paginate(10);
 
         $todayCheckouts = Rental::whereDate('start_date', Carbon::today())
-            ->where('status', 'BOOKED')
+            ->whereIn('status', ['BOOKED', 'DP_PAID', 'PAID'])
             ->count();
 
         $todayReturns = Rental::whereDate('end_date', Carbon::today())
