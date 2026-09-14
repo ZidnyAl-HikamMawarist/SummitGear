@@ -27,15 +27,8 @@
 
         <!-- Actions & Cashier Controls -->
         <div class="flex items-center gap-3">
-            <!-- Booking Masuk Link -->
-            <a href="{{ route('admin.operations.incoming_booking') }}" 
-               class="btn text-xs font-bold text-gray-700 hover:text-[#101F42] bg-gray-100 hover:bg-gray-200/80 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5" 
-               title="Daftar Booking Online Masuk">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                <span>Booking Masuk</span>
-            </a>
+            <!-- Booking Masuk Link (Real-time Red Badge) -->
+            <livewire:components.incoming-booking-badge type="button" />
 
             @if(auth()->user()->role === 'admin')
             <!-- Admin Dashboard return button -->
@@ -112,15 +105,21 @@
                         </div>
                     </div>
 
-                    <select wire:model.live="selectedCategory"
-                            class="rounded-xl text-sm font-semibold px-3.5 outline-none transition-all cashier-category" 
-                            style="height: 42px; border: 1px solid #E2E8F0; background: #F8FAFC;" 
-                            aria-label="Filter kategori">
-                        <option value="all">Semua Kategori</option>
-                        @foreach($this->categories as $category)
-                            <option value="{{ $category }}">{{ $category }}</option>
-                        @endforeach
-                    </select>
+                    <div class="relative cashier-category">
+                        <select wire:model.live="selectedCategory"
+                                class="h-[42px] rounded-xl text-sm font-semibold pl-3.5 pr-8 bg-[#F8FAFC] border border-slate-200 outline-none transition-all cursor-pointer appearance-none focus:border-[#101F42] focus:bg-white" 
+                                aria-label="Filter kategori">
+                            <option value="all">Semua Kategori</option>
+                            @foreach($this->categories as $category)
+                                <option value="{{ $category }}">{{ $category }}</option>
+                            @endforeach
+                        </select>
+                        <span class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </span>
+                    </div>
 
                     <span class="ml-auto text-xs font-bold text-slate-400 whitespace-nowrap tabular-nums">
                         {{ count($this->availableItems) }} produk
@@ -235,23 +234,28 @@
                         <!-- Pelanggan -->
                         <div>
                             <label for="pos-customer" class="text-[11.5px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Pelanggan</label>
-                            <div class="flex gap-2.5 items-center">
-                                <div class="relative flex-1 flex items-center bg-white border border-slate-200 rounded-xl shadow-xs focus-within:border-[#101F42] focus-within:ring-2 focus-within:ring-[#101F42]/10 transition-all">
-                                    <span class="pl-3 text-slate-400 pointer-events-none flex-shrink-0">
+                            <div class="flex gap-2 items-center">
+                                <div class="relative flex-1">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                         </svg>
-                                    </span>
+                                    </div>
                                     <select id="pos-customer" wire:model.live="customer_id"
-                                            class="w-full h-11 text-[13.5px] font-semibold text-[#101F42] bg-transparent pl-2.5 pr-8 border-0 outline-none cursor-pointer focus:ring-0">
+                                            class="w-full h-11 pl-10 pr-9 text-[13.5px] font-semibold text-slate-800 bg-white border border-slate-200 rounded-xl shadow-xs outline-none cursor-pointer focus:border-[#101F42] focus:ring-2 focus:ring-[#101F42]/10 transition-all appearance-none">
                                         <option value="">Pilih pelanggan terdaftar...</option>
                                         @foreach($customers as $c)
                                             <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->phone }})</option>
                                         @endforeach
                                     </select>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
                                 </div>
                                 <a href="{{ route('admin.customers.create') }}" target="_blank"
-                                   class="w-11 h-11 flex-shrink-0 flex items-center justify-center text-slate-500 hover:text-white hover:bg-[#101F42] bg-white border border-slate-200 rounded-xl transition-all shadow-xs"
+                                   class="w-11 h-11 flex-shrink-0 flex items-center justify-center text-slate-600 hover:text-white hover:bg-[#101F42] bg-white border border-slate-200 rounded-xl transition-all shadow-xs active:scale-95"
                                    title="Tambah Pelanggan Baru">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
@@ -442,15 +446,15 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label for="pos-payment-method" class="text-[11.5px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Metode</label>
-                                <div class="relative flex items-center bg-white border border-slate-200 rounded-xl shadow-xs focus-within:border-[#101F42] focus-within:ring-2 focus-within:ring-[#101F42]/10 transition-all">
+                                <div class="relative flex items-center">
                                     <select id="pos-payment-method" wire:model="payment_method"
-                                            class="w-full h-11 text-[13px] font-bold text-[#101F42] bg-transparent pl-3 pr-7 border-0 outline-none cursor-pointer focus:ring-0 appearance-none">
+                                            class="w-full h-11 text-[13px] font-bold text-slate-800 bg-white border border-slate-200 rounded-xl pl-3 pr-8 shadow-xs outline-none cursor-pointer focus:border-[#101F42] focus:ring-2 focus:ring-[#101F42]/10 transition-all appearance-none">
                                         <option value="CASH">💵 Cash (Tunai)</option>
                                         <option value="TRANSFER">🏦 Transfer Bank</option>
                                         <option value="QRIS">📱 QRIS / E-Wallet</option>
                                     </select>
-                                    <span class="absolute right-2.5 pointer-events-none text-slate-400">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <span class="absolute right-3 pointer-events-none text-slate-400">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                         </svg>
                                     </span>

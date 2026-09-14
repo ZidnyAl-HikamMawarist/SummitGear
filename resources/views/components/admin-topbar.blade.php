@@ -1,8 +1,18 @@
 @props(['title' => 'SummitGear POS', 'subtitle' => null])
 
 <header class="topbar">
-    <div class="flex items-center gap-2">
-        {{-- Area kiri topbar bersih tanpa duplikasi judul halaman --}}
+    <div class="flex items-center gap-3">
+        <button type="button" 
+                @click="$dispatch('toggle-sidebar')" 
+                class="lg:hidden p-2 -ml-2 rounded-xl text-slate-500 hover:text-navy hover:bg-slate-100 transition cursor-pointer"
+                title="Buka Menu Navigasi">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+        @if($title)
+            <h1 class="text-sm sm:text-base font-bold text-slate-800 tracking-tight hidden sm:block">{{ $title }}</h1>
+        @endif
     </div>
     <div class="flex items-center gap-3 sm:gap-4 ml-auto">
         @if(auth()->check() && auth()->user()->role === 'kasir')

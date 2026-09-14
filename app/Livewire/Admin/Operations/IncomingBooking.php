@@ -73,7 +73,16 @@ class IncomingBooking extends Component
     {
         $query = Rental::with(['customer', 'details.itemUnit.item'])
             ->where('source', 'online')
-            ->whereIn('status', ['PENDING_PAYMENT', 'BOOKED']);
+            ->where(function ($q) {
+                $q->whereIn('status', ['DP_PAID', 'PAID', 'BOOKED'])
+                  ->orWhere(function ($sq) {
+                      $sq->where('status', 'PENDING_PAYMENT')
+                         ->where(function ($ssq) {
+                             $ssq->whereNull('expires_at')
+                                 ->orWhere('expires_at', '>', Carbon::now());
+                         });
+                  });
+            });
 
         if ($this->search) {
             $query->where(function ($q) {
@@ -121,6 +130,10 @@ class IncomingBooking extends Component
                 return $booking->is_expired;
             } elseif ($this->filterStatus === 'active') {
                 return !$booking->is_expired;
+            } elseif ($this->filterStatus === 'dp') {
+                return $booking->status === 'DP_PAID';
+            } elseif ($this->filterStatus === 'paid') {
+                return $booking->status === 'PAID';
             }
             return true;
         });

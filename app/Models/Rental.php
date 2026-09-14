@@ -10,6 +10,14 @@ class Rental extends Model
 {
     use SoftDeletes;
 
+    const STATUS_PENDING_PAYMENT = 'PENDING_PAYMENT';
+    const STATUS_DP_PAID = 'DP_PAID';
+    const STATUS_PAID = 'PAID';
+    const STATUS_BOOKED = 'BOOKED';
+    const STATUS_ACTIVE = 'ACTIVE';
+    const STATUS_COMPLETED = 'COMPLETED';
+    const STATUS_CANCELLED = 'CANCELLED';
+
     protected $fillable = [
         'rental_code',
         'customer_id',
@@ -20,7 +28,19 @@ class Rental extends Model
         'total_price',
         'discount',
         'deposit_amount',
+        'down_payment_amount',
+        'payment_type',
         'source',
+        'expires_at',
+        'pickup_reminder_sent_at',
+    ];
+
+    protected $casts = [
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+        'scheduled_return_time' => 'datetime',
+        'expires_at' => 'datetime',
+        'pickup_reminder_sent_at' => 'datetime',
     ];
 
     public function customer()
@@ -99,5 +119,26 @@ class Rental extends Model
         }
 
         return collect($grouped)->values();
+    }
+
+    public function getIsPaymentExpiredAttribute()
+    {
+        if ($this->status === self::STATUS_PENDING_PAYMENT && $this->expires_at) {
+            return Carbon::now()->greaterThan($this->expires_at);
+        }
+        return false;
+    }
+
+    public function getRemainingSecondsAttribute()
+    {
+        if ($this->status === self::STATUS_PENDING_PAYMENT && $this->expires_at) {
+            return max(0, Carbon::now()->diffInSeconds($this->expires_at, false));
+        }
+        return 0;
+    }
+
+    public function getBalanceDueAttribute()
+    {
+        return max(0, $this->total_price - (int)$this->down_payment_amount);
     }
 }

@@ -1,0 +1,911 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="SummitGear — Sewa alat outdoor berkualitas: tenda, carrier, sleeping bag & 50+ alat lainnya. Booking online, ambil di toko.">
+
+        <title>SummitGear — Sewa Alat Outdoor Berkualitas</title>
+        
+        <!-- Google Fonts: Outfit (modern, clean, non-Inter) -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+        
+        <link rel="preload" as="style" href="http://127.0.0.1:8000/build/assets/app-nkutIg1d.css" /><link rel="modulepreload" as="script" href="http://127.0.0.1:8000/build/assets/app-DMsN-rLE.js" /><link rel="stylesheet" href="http://127.0.0.1:8000/build/assets/app-nkutIg1d.css" data-navigate-track="reload" /><script type="module" src="http://127.0.0.1:8000/build/assets/app-DMsN-rLE.js" data-navigate-track="reload"></script>        <!-- Livewire Styles --><style >[wire\:loading][wire\:loading], [wire\:loading\.delay][wire\:loading\.delay], [wire\:loading\.list-item][wire\:loading\.list-item], [wire\:loading\.inline-block][wire\:loading\.inline-block], [wire\:loading\.inline][wire\:loading\.inline], [wire\:loading\.block][wire\:loading\.block], [wire\:loading\.flex][wire\:loading\.flex], [wire\:loading\.table][wire\:loading\.table], [wire\:loading\.grid][wire\:loading\.grid], [wire\:loading\.inline-flex][wire\:loading\.inline-flex] {display: none;}[wire\:loading\.delay\.none][wire\:loading\.delay\.none], [wire\:loading\.delay\.shortest][wire\:loading\.delay\.shortest], [wire\:loading\.delay\.shorter][wire\:loading\.delay\.shorter], [wire\:loading\.delay\.short][wire\:loading\.delay\.short], [wire\:loading\.delay\.default][wire\:loading\.delay\.default], [wire\:loading\.delay\.long][wire\:loading\.delay\.long], [wire\:loading\.delay\.longer][wire\:loading\.delay\.longer], [wire\:loading\.delay\.longest][wire\:loading\.delay\.longest] {display: none;}[wire\:offline][wire\:offline] {display: none;}[wire\:dirty]:not(textarea):not(input):not(select) {display: none;}:root {--livewire-progress-bar-color: #2299dd;}[x-cloak] {display: none !important;}[wire\:cloak] {display: none !important;}dialog#livewire-error::backdrop {background-color: rgba(0, 0, 0, .6);}</style>
+        <style>
+    :root.dark {
+        color-scheme: dark;
+    }
+</style>
+<script>
+    window.Flux = {
+        applyAppearance (appearance) {
+            let applyDark = () => document.documentElement.classList.add('dark')
+            let applyLight = () => document.documentElement.classList.remove('dark')
+
+            if (appearance === 'system') {
+                let media = window.matchMedia('(prefers-color-scheme: dark)')
+
+                window.localStorage.removeItem('flux.appearance')
+
+                media.matches ? applyDark() : applyLight()
+            } else if (appearance === 'dark') {
+                window.localStorage.setItem('flux.appearance', 'dark')
+
+                applyDark()
+            } else if (appearance === 'light') {
+                window.localStorage.setItem('flux.appearance', 'light')
+
+                applyLight()
+            }
+        }
+    }
+
+    window.Flux.applyAppearance(window.localStorage.getItem('flux.appearance') || 'system')
+</script>
+
+        <style>
+            [x-cloak] { display: none !important; }
+            [wire\:loading]:not([wire\:loading\.remove]) { display: none; }
+            .font-outfit { font-family: 'Outfit', system-ui, -apple-system, sans-serif; }
+
+            /* Ensure all inputs have clear, visible boundaries and never blend invisibly into white */
+            input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+            textarea,
+            select,
+            [data-flux-input],
+            [data-flux-control] {
+                border: 1.5px solid #cbd5e1 !important;
+                background-color: #f8fafc !important;
+                color: #0f1729 !important;
+                border-radius: 0.75rem !important;
+            }
+            input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):focus,
+            textarea:focus,
+            select:focus,
+            [data-flux-input]:focus-within,
+            [data-flux-control]:focus-within {
+                border-color: #e8430a !important;
+                background-color: #ffffff !important;
+                outline: none !important;
+                box-shadow: 0 0 0 3px rgba(232, 67, 10, 0.15) !important;
+            }
+        </style>
+    </head>
+    <body class="bg-white text-[#0f1729] antialiased font-outfit">
+        <div wire:snapshot="{&quot;data&quot;:{&quot;name&quot;:&quot;&quot;,&quot;email&quot;:&quot;&quot;,&quot;phone&quot;:&quot;&quot;,&quot;phone_number&quot;:&quot;&quot;,&quot;nik&quot;:&quot;&quot;,&quot;address&quot;:&quot;&quot;,&quot;start_date&quot;:null,&quot;end_date&quot;:null,&quot;pickup_time&quot;:&quot;10:00&quot;,&quot;cart&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;searchQuery&quot;:&quot;&quot;,&quot;selectedCategory&quot;:&quot;all&quot;,&quot;isCartOpen&quot;:false,&quot;cartStep&quot;:&quot;items&quot;,&quot;perPage&quot;:12,&quot;totalFilteredItems&quot;:56,&quot;total_price&quot;:0,&quot;showSuccessModal&quot;:false,&quot;confirmedBooking&quot;:null},&quot;memo&quot;:{&quot;id&quot;:&quot;hTmGTGPeZReYwRqtAuv6&quot;,&quot;name&quot;:&quot;public.booking&quot;,&quot;path&quot;:&quot;booking&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;release&quot;:&quot;a-a-a&quot;,&quot;children&quot;:[],&quot;scripts&quot;:[],&quot;assets&quot;:[],&quot;errors&quot;:[],&quot;locale&quot;:&quot;en&quot;,&quot;islands&quot;:[]},&quot;checksum&quot;:&quot;a2c42d5ad9d15cb35af3bd0f1288bebcf7d2c2067db7b5287ce09ccd7df5ff6e&quot;}" wire:effects="[]" wire:id="hTmGTGPeZReYwRqtAuv6" wire:name="public.booking" class="min-h-screen bg-slate-50 flex flex-col relative"
+     x-data="{
+         copied: false,
+         copyBookingCode(code) {
+             if (navigator.clipboard) {
+                 navigator.clipboard.writeText(code);
+             } else {
+                 const el = document.createElement('textarea');
+                 el.value = code;
+                 document.body.appendChild(el);
+                 el.select();
+                 document.execCommand('copy');
+                 document.body.removeChild(el);
+             }
+             this.copied = true;
+             setTimeout(() => this.copied = false, 2500);
+         }
+     }"
+     @booking-confirmed.window="
+         const b = $event.detail.booking;
+         try {
+             localStorage.setItem('summitgear_active_booking', JSON.stringify(b));
+             let history = JSON.parse(localStorage.getItem('summitgear_booking_history') || '[]');
+             history = history.filter(item => item.rental_code !== b.rental_code);
+             history.unshift(b);
+             if (history.length > 10) history = history.slice(0, 10);
+             localStorage.setItem('summitgear_booking_history', JSON.stringify(history));
+         } catch (e) {
+             console.error('Error saving booking to localStorage:', e);
+         }
+     ">
+    <!-- Navbar -->
+    <header class="bg-white border-b border-gray-200/80 shadow-sm sticky top-0 z-40 backdrop-blur-md bg-white/95">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="http://127.0.0.1:8000" class="flex items-center gap-2.5 group">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm" style="background: #e8430a;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m12 3-9 17h18Z"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="text-[18px] font-extrabold tracking-tight text-[#0f1729] leading-tight block">
+                        Summit<span style="color: #e8430a;">Gear</span>
+                    </span>
+                    <p class="text-[10px] text-gray-400 font-medium hidden sm:block -mt-0.5">Katalog Sewa Online</p>
+                </div>
+            </a>
+
+            <div class="flex items-center gap-3 sm:gap-4">
+                <a href="http://127.0.0.1:8000" class="text-xs sm:text-sm font-bold text-gray-500 hover:text-navy transition-colors px-2 py-1">
+                    Kembali
+                </a>
+
+                <!-- Cart Button with Clean Unified Badge -->
+                <button type="button" 
+                        wire:click="openCart"
+                                                    style="background-color: #ffffff !important; color: #334155 !important; border: 1.5px solid #cbd5e1;"
+                                                class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all transform active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" style="color: #475569 !important;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    <span style="color: #334155 !important; font-weight: 800;">Keranjang</span>
+                    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content: Full-width Catalog Grid -->
+    <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Filter & Search Section -->
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200/80 shadow-sm mb-6">
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                
+                <!-- Search Input with Flux -->
+                <div class="flex-1">
+                    <div class="w-full relative block group/input" data-flux-input>
+                            <div class="pointer-events-none absolute top-0 bottom-0 border-s border-transparent flex items-center justify-center text-xs text-zinc-400/75 dark:text-white/60 ps-3 start-0">
+                    <svg class="shrink-0 [:where(&amp;)]:size-5" data-flux-icon xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd"/>
+</svg>
+
+                        </div>
+            
+            <input
+                type="text"
+                
+                class="w-full border block disabled:shadow-none dark:shadow-none appearance-none text-base sm:text-sm rounded-lg py-2 h-10 leading-[1.375rem] ps-10 pe-10 bg-white dark:bg-white/10 dark:disabled:bg-white/[7%] text-zinc-700 disabled:text-zinc-500 placeholder-zinc-400 disabled:placeholder-zinc-400/70 dark:text-zinc-300 dark:disabled:text-zinc-400 dark:placeholder-zinc-400 dark:disabled:placeholder-zinc-500 shadow-xs border-zinc-200 border-b-zinc-300/80 disabled:border-b-zinc-200 dark:border-white/10 dark:disabled:border-white/5 data-invalid:shadow-none data-invalid:border-red-500 dark:data-invalid:border-red-500 disabled:data-invalid:border-red-500 dark:disabled:data-invalid:border-red-500" wire:model.live.debounce.300ms="searchQuery" placeholder="Cari peralatan outdoor, tenda, carrier, matras..."
+                 name="searchQuery"                                                                                                 data-flux-control
+                data-flux-group-target
+                 wire:loading.class="pe-16"                  wire:target="searchQuery"             >
+
+                            <div class="absolute top-0 bottom-0 flex items-center gap-x-1.5 pe-2 border-e border-transparent end-0 text-xs text-zinc-400">
+                    
+                                            <svg class="shrink-0 [:where(&amp;)]:size-5 animate-spin" wire:loading="" wire:target="searchQuery" data-flux-icon xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true" data-slot="icon">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+</svg>
+                            
+                                            <button type="button" class="relative items-center font-medium justify-center whitespace-nowrap disabled:opacity-50 dark:disabled:opacity-50 disabled:cursor-default disabled:pointer-events-none disabled:shadow-none justify-center h-8 text-sm rounded-md gap-2 w-8 inline-flex -ms-1.5 -me-1.5 bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white       -me-1 [[data-flux-input]:has(input:placeholder-shown)_&amp;]:hidden [[data-flux-input]:has(input[disabled])_&amp;]:hidden" data-flux-button="data-flux-button" x-data="fluxInputClearable" x-on:click="clear()" tabindex="-1" aria-label="Clear input" data-flux-clear-button="data-flux-clear-button">
+        <svg class="shrink-0 [:where(&amp;)]:size-5" data-flux-icon xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" data-slot="icon">
+  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
+</svg>
+    </button>
+                    
+                    
+                    
+                    
+                    
+                                    </div>
+                    </div>
+                </div>
+
+                <!-- Date Range & Category Filter -->
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                    <div style="background-color: #f8fafc; border: 1.5px solid #e2e8f0; min-height: 52px; padding: 8px 16px;" 
+                         class="flex items-center gap-3 w-full sm:w-auto rounded-xl shadow-2xs">
+                        <span class="text-[11px] font-extrabold text-slate-500 uppercase tracking-wide shrink-0">Tgl Sewa:</span>
+                        <input type="date" 
+                               wire:model.live="start_date" 
+                               min="2026-09-10"
+                               style="height: 36px; padding: 0 10px; font-size: 12px; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff;"
+                               class="text-slate-800 shadow-2xs focus:border-[#e8430a] focus:ring-1 focus:ring-[#e8430a] outline-none">
+                        <span class="text-xs text-slate-400 font-bold">-</span>
+                        <input type="date" 
+                               wire:model.live="end_date" 
+                               min="2026-09-10"
+                               style="height: 36px; padding: 0 10px; font-size: 12px; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff;"
+                               class="text-slate-800 shadow-2xs focus:border-[#e8430a] focus:ring-1 focus:ring-[#e8430a] outline-none">
+                    </div>
+
+                    <div class="w-full sm:w-auto">
+                        <select wire:model.live="selectedCategory" 
+                                style="background-color: #f8fafc; border: 1.5px solid #e2e8f0; min-height: 52px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: #1e293b;"
+                                class="w-full sm:w-auto rounded-xl shadow-2xs focus:border-[#e8430a] focus:ring-1 focus:ring-[#e8430a] outline-none cursor-pointer">
+                            <option value="all">Semua Kategori</option>
+                            <!--[if BLOCK]><![endif]-->                                <option value="Tenda">Tenda</option>
+                                                            <option value="Furnitur">Furnitur</option>
+                                                            <option value="Pakaian">Pakaian</option>
+                                                            <option value="Tidur">Tidur</option>
+                                                            <option value="Aksesoris">Aksesoris</option>
+                                                            <option value="Tas">Tas</option>
+                                                            <option value="Elektronik">Elektronik</option>
+                                                            <option value="Sepatu">Sepatu</option>
+                                                            <option value="Penerangan">Penerangan</option>
+                                                            <option value="Masak">Masak</option>
+                            <!--[if ENDBLOCK]><![endif]-->                        </select>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Active Dates & Duration Indicator -->
+            <div style="margin-top: 7px; padding-top: 7px;" class="border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+                <div class="flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <!--[if BLOCK]><![endif]-->                        <span>Katalog Alat Outdoor SummitGear — Silakan pilih alat dan atur durasi sewa di formulir keranjang.</span>
+                    <!--[if ENDBLOCK]><![endif]-->                </div>
+                <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->            </div>
+        </div>
+
+        <!-- Notification Message if any -->
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+        <!-- Catalog Items Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 pb-20">
+            <!--[if BLOCK]><![endif]-->                <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(1)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/tenda_kap_2_org.jpg" alt="Tenda Kap 2 Org" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tenda</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Tenda Kap 2 Org
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 30.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(1)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(2)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/tenda_kap_4_org.jpg" alt="Tenda Kap 4 Org" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tenda</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Tenda Kap 4 Org
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 40.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(2)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">4</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(3)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/tenda_kap_5_org.jpg" alt="Tenda Kap 5 Org" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tenda</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Tenda Kap 5 Org
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 50.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(3)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(4)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/tenda_kap_6_org.jpg" alt="Tenda Kap 6 Org" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tenda</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Tenda Kap 6 Org
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 70.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(4)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(5)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/flysheet.jpg" alt="Flysheet" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tenda</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Flysheet
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 10.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(5)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">3</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(6)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/pasak_5pcs_.jpg" alt="Pasak (5Pcs)" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tenda</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Pasak (5Pcs)
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 5.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(6)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(7)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/matras_lipat.jpg" alt="Matras lipat" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tidur</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Matras lipat
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 15.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(7)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(8)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/bantal_tiup.jpg" alt="Bantal Tiup" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tidur</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Bantal Tiup
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 5.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(8)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(9)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/sleeping_bag.jpg" alt="Sleeping Bag" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tidur</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Sleeping Bag
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 10.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(9)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(10)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/hammock.jpg" alt="Hammock" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tidur</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Hammock
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 5.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(10)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(11)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/tiang_flysheet.jpg" alt="Tiang Flysheet" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tenda</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Tiang Flysheet
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 10.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(11)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+                            <div class="bg-white rounded-2xl p-3.5 border border-gray-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col h-full group relative overflow-hidden">
+                    
+                    <!-- Availability & Cart Badge -->
+                    <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
+                        <!--[if BLOCK]><![endif]-->                            <span class="bg-slate-900/85 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md border border-white/20 flex items-center gap-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>Sisa <strong class="text-emerald-300 font-black">5</strong></span>
+                            </span>
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <div  wire:click="addToCart(12)" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0"                          class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all cursor-pointer hover:opacity-95 group/img">
+                        <!--[if BLOCK]><![endif]-->                            <img src="http://127.0.0.1:8000/storage/images/catalog/tali_flysheet_6pcs_.jpg" alt="Tali Flysheet (6Pcs)" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
+                        <!--[if ENDBLOCK]><![endif]-->
+                        <!--[if BLOCK]><![endif]-->                            <!-- Hover Quick-Add Badge Overlay -->
+                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Klik Tambah</span>
+                                </span>
+                            </div>
+                        <!--[if ENDBLOCK]><![endif]-->                    </div>
+
+                    <!-- Item Details -->
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Tenda</span>
+                            <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
+                                Tali Flysheet (6Pcs)
+                            </h3>
+                        </div>
+
+                        <div class="mt-3 pt-2.5 border-t border-gray-100 flex flex-col gap-2">
+                            <div class="text-emerald-600 font-black text-sm sm:text-base">
+                                Rp 5.000<span class="text-[10px] font-normal text-gray-400">/hr</span>
+                            </div>
+
+                            <!--[if BLOCK]><![endif]-->                                <button type="button" 
+                                        wire:click="addToCart(12)" 
+                                        class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>+ Tambah</span>
+                                </button>
+                            <!--[if ENDBLOCK]><![endif]-->                        </div>
+                    </div>
+
+                </div>
+            <!--[if ENDBLOCK]><![endif]-->
+            <!-- Sentinel Load More on Scroll (Lazy Loading) -->
+            <!--[if BLOCK]><![endif]-->                <div x-data="{
+                        observe() {
+                            const observer = new IntersectionObserver((entries) => {
+                                if (entries[0].isIntersecting) {
+                                    window.Livewire.find('hTmGTGPeZReYwRqtAuv6').loadMore();
+                                }
+                            }, { rootMargin: '300px' });
+                            observer.observe($el);
+                        }
+                     }"
+                     x-init="observe()"
+                     class="col-span-full py-8 flex flex-col items-center justify-center gap-3">
+                    <div class="inline-flex items-center gap-2.5 px-5 py-2.5 bg-white border border-gray-200/90 rounded-full shadow-xs text-xs font-bold text-gray-600">
+                        <svg class="animate-spin h-4 w-4 text-emerald-600 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Memuat perlengkapan selanjutnya saat di-scroll...</span>
+                    </div>
+                    <button type="button" wire:click="loadMore" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline">
+                        + Tampilkan lebih banyak alat
+                    </button>
+                </div>
+            <!--[if ENDBLOCK]><![endif]-->        </div>
+
+    </main>
+
+    <!-- Floating Bottom Bar When Cart Has Items (Solid, Opaque & High-Contrast) -->
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    <!-- Premium Right-Side Cart Drawer (Slide-Over Panel) -->
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    
+    
+    
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+</div>
+
+        <!-- Livewire Scripts -->
+<script src="http://127.0.0.1:8000/livewire-0f5e7aa1/livewire.js?id=8642c1d5"   data-csrf="jXgvCa98Eq3llgL6vSAwKrrdvBrbjnON5vD0sp5h" data-module-url="http://127.0.0.1:8000/livewire-0f5e7aa1" data-update-uri="http://127.0.0.1:8000/livewire-0f5e7aa1/update" data-navigate-once="true"></script>
+        <script src="http://127.0.0.1:8000/flux/flux.js?id=20391e00" data-navigate-once></script>
+    </body>
+</html>
+

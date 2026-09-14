@@ -1,28 +1,63 @@
-<aside class="sidebar">
-    <div class="sidebar-header">
-        <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-2xs" style="background: linear-gradient(135deg, #101F42 0%, #1E3A8A 100%);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-coral)">
-                <path d="m12 3-9 17h18Z"/>
-                <path d="m12 3 3 8-6 4"/>
-            </svg>
-        </div>
-        <div class="flex items-center gap-1.5">
-            <h2 class="sidebar-brand text-sm font-black text-navy leading-tight">SummitGear</h2>
-            <span class="text-[8px] font-extrabold px-1 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">v2.0</span>
-        </div>
+<div x-data="{ open: false }" 
+     @toggle-sidebar.window="open = !open" 
+     @close-sidebar.window="open = false" 
+     @keydown.escape.window="open = false"
+     class="contents">
+
+    <!-- Mobile Backdrop -->
+    <div x-show="open" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="open = false" 
+         class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs lg:hidden"
+         style="display: none;">
     </div>
+
+    <!-- Main Sidebar -->
+    <aside class="sidebar" :class="{ 'open': open }">
+        <div class="sidebar-header">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-2xs" style="background: linear-gradient(135deg, #101F42 0%, #1E3A8A 100%);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-coral)">
+                    <path d="m12 3-9 17h18Z"/>
+                    <path d="m12 3 3 8-6 4"/>
+                </svg>
+            </div>
+            <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <h2 class="sidebar-brand text-sm font-black text-navy leading-tight">SummitGear</h2>
+                <span class="text-[8px] font-extrabold px-1 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">v2.0</span>
+            </div>
+            <button type="button" @click="open = false" class="lg:hidden p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
 
     <nav class="sidebar-nav">
         <!-- SEKSI: UTAMA -->
         <span class="sidebar-section-title first">Utama</span>
 
-        <!-- 1. Dashboard -->
-        <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+        @if(auth()->user()->role === 'admin')
+        <!-- 1. Dashboard Utama (Super Admin) -->
+        <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') || (request()->routeIs('dashboard') && auth()->user()->role === 'admin') ? 'active' : '' }}">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+                <rect width="7" height="7" x="3" y="3" rx="1.5"/><rect width="7" height="7" x="14" y="3" rx="1.5"/><rect width="7" height="7" x="14" y="14" rx="1.5"/><rect width="7" height="7" x="3" y="14" rx="1.5"/>
             </svg>
             <span>Dashboard</span>
         </a>
+        @endif
+
+        @if(in_array(auth()->user()->role, ['admin', 'gudang']))
+        <!-- 1b. Dashboard Pergudangan & Unit -->
+        <a href="{{ route('gudang.dashboard') }}" class="sidebar-link {{ request()->routeIs('gudang.dashboard') || (request()->routeIs('dashboard') && auth()->user()->role === 'gudang') ? 'active' : '' }}">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            <span>Dashboard Gudang</span>
+        </a>
+        @endif
 
         @if(auth()->user()->role === 'kasir')
         <!-- 2. Kasir / Transaksi Baru (Khusus Role Kasir) -->
@@ -37,15 +72,8 @@
         <!-- SEKSI: OPERASIONAL & QC -->
         <span class="sidebar-section-title">Operasional & QC</span>
 
-        @if(in_array(auth()->user()->role, ['admin', 'kasir']))
-        <!-- 2b. Booking Masuk (Online) -->
-        <a href="{{ route('admin.operations.incoming_booking') }}" class="sidebar-link {{ request()->routeIs('admin.operations.incoming_booking') ? 'active' : '' }}">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span>Booking Masuk</span>
-        </a>
-        @endif
+        <!-- 2b. Booking Masuk (Online with Real-time Red Badge) -->
+        <livewire:components.incoming-booking-badge type="sidebar" />
 
         <!-- 3. Operasional Serah Terima (Handover) -->
         <a href="{{ route('admin.operations.handover') }}" class="sidebar-link {{ request()->routeIs('admin.operations.handover') || request()->routeIs('admin.operations.check*') || request()->routeIs('admin.settlements.*') ? 'active' : '' }}">
@@ -66,29 +94,29 @@
         <!-- SEKSI: INVENTARIS & GUDANG -->
         <span class="sidebar-section-title">Inventaris & Gudang</span>
 
-        <!-- 5. Inventaris Alat -->
-        <a href="{{ route('admin.inventory.items') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
-            </svg>
-            <span>Inventaris Alat</span>
-        </a>
-
         @if(in_array(auth()->user()->role, ['admin', 'gudang']))
         <!-- 7. Maintenance Kanban -->
         <a href="{{ route('admin.maintenance.kanban') }}" class="sidebar-link {{ request()->routeIs('admin.maintenance.*') ? 'active' : '' }}">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
             </svg>
-            <span>Gudang (Kanban)</span>
+            <span>Kanban Perawatan</span>
         </a>
         @endif
+
+        <!-- 5. Inventaris Alat -->
+        <a href="{{ route('admin.inventory.items') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.*') ? 'active' : '' }}">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+            </svg>
+            <span>Daftar Alat & Unit</span>
+        </a>
 
         @if(in_array(auth()->user()->role, ['admin', 'kasir']))
         <!-- 6. Pelanggan -->
         <a href="{{ route('admin.customers') }}" class="sidebar-link {{ request()->routeIs('admin.customers*') ? 'active' : '' }}">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
             <span>Data Pelanggan</span>
         </a>
@@ -109,7 +137,7 @@
         <!-- 9. Kelola Akun -->
         <a href="{{ route('admin.users') }}" class="sidebar-link {{ request()->routeIs('admin.users*') ? 'active' : '' }}">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
             <span>Kelola Akun</span>
         </a>
@@ -133,14 +161,16 @@
     </nav>
 
     <div class="mt-auto pt-2 pb-2 px-2 border-t border-slate-100">
-        <button type="button" 
-                @click="$dispatch('open-logout-modal')" 
-                class="sidebar-link logout-link m-0 w-full text-left cursor-pointer border-0 bg-transparent"
-                title="Keluar dari sesi akun">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>
-            </svg>
-            <span>Keluar (Logout)</span>
-        </button>
+        <flux:modal.trigger name="logout-modal">
+            <button type="button" 
+                    class="sidebar-link logout-link m-0 w-full text-left cursor-pointer border-0 bg-transparent"
+                    title="Keluar dari sesi akun">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>
+                </svg>
+                <span>Keluar (Logout)</span>
+            </button>
+        </flux:modal.trigger>
     </div>
 </aside>
+</div>

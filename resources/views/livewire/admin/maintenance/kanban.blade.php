@@ -4,15 +4,15 @@
     <main class="main-content">
         <x-admin-topbar title="Papan Kerja Maintenance & Gudang" />
 
-        <div class="content-area">
+        <div class="mx-auto w-full max-w-7xl px-6 py-6 space-y-6">
             <!-- Header -->
-            <div class="mb-5">
-                <h2 class="text-2xl font-bold text-navy">Papan Kerja Maintenance & Gudang</h2>
-                <p class="text-sm text-gray-500 mt-0.5">Kelola alur pembersihan, perbaikan alat rusak, dan kesiapan unit sebelum disewakan.</p>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-navy">Papan Kerja Maintenance & Gudang</h1>
+                <p class="text-sm text-gray-500 mt-1">Kelola alur pembersihan, perbaikan alat rusak, dan kesiapan unit sebelum disewakan.</p>
             </div>
 
             @if (session()->has('message'))
-                <div class="mb-5 p-4 text-xs font-bold text-green-800 bg-green-100 border border-green-200 rounded-xl flex items-center gap-2">
+                <div class="p-4 text-xs font-bold text-green-800 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
