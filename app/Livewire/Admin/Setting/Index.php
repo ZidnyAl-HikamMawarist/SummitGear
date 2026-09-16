@@ -95,10 +95,38 @@ class Index extends Component
         session()->flash('message_2fa', 'Google Authenticator 2FA berhasil diaktifkan untuk akun Admin Anda!');
     }
 
-    public function disableTwoFactor()
+    public bool $showDisable2faModal = false;
+    public string $disable2faPassword = '';
+
+    public function openDisable2faModal()
     {
+        $this->disable2faPassword = '';
+        $this->resetErrorBag();
+        $this->showDisable2faModal = true;
+    }
+
+    public function closeDisable2faModal()
+    {
+        $this->showDisable2faModal = false;
+        $this->disable2faPassword = '';
+        $this->resetErrorBag();
+    }
+
+    public function confirmDisableTwoFactor()
+    {
+        $this->validate([
+            'disable2faPassword' => 'required|string',
+        ], [
+            'disable2faPassword.required' => 'Masukkan kata sandi akun untuk menonaktifkan 2FA.',
+        ]);
+
         $user = auth()->user();
         if (!$user) return;
+
+        if (!\Illuminate\Support\Facades\Hash::check($this->disable2faPassword, $user->password)) {
+            $this->addError('disable2faPassword', 'Kata sandi akun salah. Gagal menonaktifkan 2FA.');
+            return;
+        }
 
         $user->update([
             'two_factor_secret' => null,
@@ -106,14 +134,21 @@ class Index extends Component
             'two_factor_recovery_codes' => null,
         ]);
 
-        AuditLogger::log('SECURITY', 'User', $user->id, "Admin menonaktifkan Google Authenticator 2FA.");
+        AuditLogger::log('SECURITY', 'User', $user->id, "Admin menonaktifkan Google Authenticator 2FA setelah verifikasi kata sandi.");
 
         $this->twoFactorEnabled = false;
         $this->recoveryCodes = [];
         $this->showingQrCode = false;
         $this->showRecoveryCodesModal = false;
+        $this->showDisable2faModal = false;
+        $this->disable2faPassword = '';
 
         session()->flash('message_2fa', 'Autentikasi dua faktor (2FA) telah dinonaktifkan.');
+    }
+
+    public function disableTwoFactor()
+    {
+        $this->openDisable2faModal();
     }
 
     public function closeRecoveryModal()

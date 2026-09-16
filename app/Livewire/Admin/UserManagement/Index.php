@@ -164,9 +164,19 @@ class Index extends Component
         $this->dispatch('requestPinApproval', action: 'delete_user', data: ['user_id' => $id]);
     }
 
-    public function handlePinApproved($action, $data, $approvedBy)
+    public function handlePinApproved($action, $data, $approvedBy, $token = null)
     {
-        if ($action === 'delete_user' && $this->pendingUserId == $data['user_id']) {
+        if ($action === 'delete_user' && $this->pendingUserId == ($data['user_id'] ?? null)) {
+            // Verifikasi One-Time Token Otorisasi PIN Admin dari Session
+            $token = $token ?? ($data['token'] ?? null);
+            $stored = session()->get('pin_approval_token_delete_user');
+            session()->forget('pin_approval_token_delete_user'); // Hapus seketika (One-Time Token)
+
+            if (!$stored || !isset($stored['token']) || !hash_equals($stored['token'], (string)$token) || now()->timestamp > ($stored['expires_at'] ?? 0)) {
+                session()->flash('error', 'Otorisasi PIN Admin tidak valid, telah kedaluwarsa, atau ditolak.');
+                return;
+            }
+
             $user = User::findOrFail($this->pendingUserId);
             
             // Jangan biarkan hapus diri sendiri

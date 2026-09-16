@@ -135,6 +135,46 @@
                     </div>
                 </flux:card>
 
+                @if($rental->balance_due > 0)
+                <!-- Pelunasan Sisa Pokok Sewa (Khusus Booking Online DP 30%) -->
+                <flux:card class="space-y-4 border-2 border-amber-300 bg-amber-50/30">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-3 border-b border-amber-200">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-navy">Pelunasan Sisa Biaya Sewa (Booking DP)</h3>
+                                <p class="text-xs text-amber-900/80">Penyewa baru membayar DP sebesar <strong>Rp {{ number_format($rental->down_payment_amount, 0, ',', '.') }}</strong> dari total <strong>Rp {{ number_format($rental->total_price, 0, ',', '.') }}</strong>.</p>
+                            </div>
+                        </div>
+                        <div class="bg-amber-100/80 px-3.5 py-1.5 rounded-xl border border-amber-300 text-right">
+                            <span class="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Wajib Dilunasi</span>
+                            <span class="text-lg font-extrabold text-amber-900">Rp {{ number_format($rental->balance_due, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                        <div>
+                            <flux:label class="text-xs">Metode Pembayaran Pelunasan:</flux:label>
+                            <select wire:model="balancePaymentMethod" class="text-xs font-semibold px-3 py-2 border border-gray-300 rounded-lg w-full bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy/20 mt-1">
+                                <option value="CASH">Uang Tunai (Cash)</option>
+                                <option value="TRANSFER">Transfer Bank</option>
+                                <option value="QRIS">QRIS</option>
+                            </select>
+                            @error('balancePaymentMethod') <span class="text-xs font-bold text-red-600 mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <flux:label class="text-xs">Nominal Diterima Kasir (Rp):</flux:label>
+                            <flux:input type="number" wire:model="balancePaymentAmount" placeholder="Minimal: {{ $rental->balance_due }}" class="mt-1" />
+                            @error('balancePaymentAmount') <span class="text-xs font-bold text-red-600 mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </flux:card>
+                @endif
+
                 <!-- Handover & Digital Agreement Box -->
                 <flux:card class="space-y-4">
                     <div class="flex items-center gap-3 pb-4 border-b border-gray-100">

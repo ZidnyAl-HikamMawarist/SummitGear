@@ -151,8 +151,14 @@
                         </div>
 
                         <div class="space-y-3 text-sm">
+                            @if($this->balanceDue > 0)
                             <div class="flex justify-between pb-2 border-b border-gray-100">
-                                <span class="text-gray-500 font-medium">Total Denda:</span>
+                                <span class="text-amber-700 font-medium">Sisa Pokok Sewa (DP):</span>
+                                <span class="font-bold text-amber-600">Rp {{ number_format($this->balanceDue, 0, ',', '.') }}</span>
+                            </div>
+                            @endif
+                            <div class="flex justify-between pb-2 border-b border-gray-100">
+                                <span class="text-gray-500 font-medium">Total Denda / Sengketa:</span>
                                 <span class="font-bold text-red-600">Rp {{ number_format($this->totalPenalty, 0, ',', '.') }}</span>
                             </div>
                             <div class="flex justify-between pb-2 border-b border-gray-100">

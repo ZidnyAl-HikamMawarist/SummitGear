@@ -34,21 +34,32 @@ class Invoice extends Component
         'pin-approved' => 'handlePinApproved',
     ];
 
-    public function handlePinApproved($action, $data, $approvedBy)
+    public function handlePinApproved($action, $data, $approvedBy, $token = null)
     {
         $this->processVoid([
             'action' => $action,
             'payload' => $data,
             'approver_id' => $approvedBy,
+            'token' => $token,
         ]);
     }
 
     public function processVoid($data)
     {
-        if ($data['action'] === 'voidTransaction' && ($data['payload']['rental_id'] ?? null) == $this->rentalId) {
+        if (($data['action'] ?? null) === 'voidTransaction' && ($data['payload']['rental_id'] ?? null) == $this->rentalId) {
             
-            // Guard: hanya BOOKED atau PENDING_PAYMENT yang bisa di-VOID
-            if (!in_array($this->rental->status, ['BOOKED', 'PENDING_PAYMENT'])) {
+            // Verifikasi One-Time Token Otorisasi PIN Admin dari Session (Cegah Client Forgery)
+            $token = $data['token'] ?? null;
+            $stored = session()->get('pin_approval_token_voidTransaction');
+            session()->forget('pin_approval_token_voidTransaction'); // Hapus seketika (One-Time Token)
+
+            if (!$stored || !isset($stored['token']) || !hash_equals($stored['token'], (string)$token) || now()->timestamp > ($stored['expires_at'] ?? 0)) {
+                session()->flash('error', 'Otorisasi PIN Admin tidak valid, telah kedaluwarsa, atau ditolak.');
+                return;
+            }
+
+            // Guard: transaksi yang sudah serah terima / selesai tidak dapat di-VOID
+            if (in_array($this->rental->status, ['COMPLETED', 'RENTED_OUT', 'OVERDUE', 'VOID', 'CANCELLED'])) {
                 session()->flash('error', "Transaksi status '{$this->rental->status}' tidak dapat di-VOID.");
                 return;
             }

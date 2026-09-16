@@ -17,6 +17,10 @@ class CheckOut extends Component
     // Checklist per detail id: ['condition' => 'Baik', 'notes' => '']
     public $checklists = [];
 
+    // Pelunasan Sisa Pokok Sewa (Booking DP)
+    public $balancePaymentMethod = 'CASH';
+    public $balancePaymentAmount = 0;
+
     // Signature data URL or acknowledgment confirmation
     public $customerAgreed = false;
     public $notes = '';
@@ -28,6 +32,10 @@ class CheckOut extends Component
 
         if (!in_array($this->rental->status, ['BOOKED', 'DP_PAID', 'PAID'])) {
             session()->flash('message', 'Transaksi ini tidak dalam status BOOKED / DP_PAID / PAID (status saat ini: ' . $this->rental->status . ')');
+        }
+
+        if ($this->rental->balance_due > 0) {
+            $this->balancePaymentAmount = (int)$this->rental->balance_due;
         }
 
         foreach ($this->rental->details as $detail) {
@@ -46,11 +54,19 @@ class CheckOut extends Component
             return;
         }
 
-        $this->validate([
+        $rules = [
             'customerAgreed' => 'accepted',
             'checklists.*.condition' => 'required|in:Baik,Cukup,Perhatian',
-        ], [
+        ];
+
+        if ($this->rental->balance_due > 0) {
+            $rules['balancePaymentMethod'] = 'required|in:CASH,TRANSFER,QRIS';
+            $rules['balancePaymentAmount'] = 'required|numeric|min:' . $this->rental->balance_due;
+        }
+
+        $this->validate($rules, [
             'customerAgreed.accepted' => 'Pelanggan wajib menyatakan telah memeriksa fisik barang dan menyetujui serah terima.',
+            'balancePaymentAmount.min' => 'Nominal pelunasan sisa sewa minimal Rp ' . number_format($this->rental->balance_due, 0, ',', '.'),
         ]);
 
         DB::beginTransaction();
@@ -76,7 +92,24 @@ class CheckOut extends Component
                 }
             }
 
-            // 3. Update status Rental ke RENTED_OUT
+            // 3. Pelunasan sisa sewa pokok jika transaksi booking DP
+            if ($this->rental->balance_due > 0) {
+                \App\Models\Payment::create([
+                    'rental_id' => $this->rental->id,
+                    'type' => 'rental_balance',
+                    'method' => $this->balancePaymentMethod,
+                    'amount' => $this->balancePaymentAmount,
+                    'paid_at' => now(),
+                ]);
+
+                $this->rental->update([
+                    'down_payment_amount' => $this->rental->total_price,
+                ]);
+
+                AuditLogger::log('PAYMENT', 'Rental', $this->rental->id, "Pelunasan sisa sewa pokok sebesar Rp " . number_format($this->balancePaymentAmount, 0, ',', '.') . " via {$this->balancePaymentMethod} saat Check-Out.");
+            }
+
+            // 4. Update status Rental ke RENTED_OUT
             $this->rental->update([
                 'status' => 'RENTED_OUT',
             ]);

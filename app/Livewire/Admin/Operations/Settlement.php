@@ -61,11 +61,21 @@ class Settlement extends Component
         return $this->rental->deposits->where('status', 'HELD')->sum('amount');
     }
 
+    public function getBalanceDueProperty()
+    {
+        return (int) $this->rental->balance_due;
+    }
+
+    public function getTotalObligationProperty()
+    {
+        return $this->balanceDue + $this->totalPenalty;
+    }
+
     public function getNetBalanceProperty()
     {
-        // Positif = Pelanggan harus bayar kekurangan.
+        // Positif = Pelanggan harus bayar kekurangan (Sisa Pokok Sewa + Denda - Deposit Ditahan).
         // Negatif = Toko harus mengembalikan kelebihan uang deposit ke pelanggan.
-        return $this->totalPenalty - $this->heldDepositAmount;
+        return $this->totalObligation - $this->heldDepositAmount;
     }
 
     // Modal Trigger for Admin PIN
@@ -83,7 +93,17 @@ class Settlement extends Component
 
     public function executeOverridePenalty($data)
     {
-        if ($data['action'] === 'overridePenalty' && $this->overridePenaltyId == $data['payload']['penalty_id']) {
+        if (($data['action'] ?? null) === 'overridePenalty' && $this->overridePenaltyId == ($data['payload']['penalty_id'] ?? null)) {
+            // Verifikasi One-Time Token Otorisasi PIN Admin dari Session
+            $token = $data['token'] ?? null;
+            $stored = session()->get('pin_approval_token_overridePenalty');
+            session()->forget('pin_approval_token_overridePenalty'); // Hapus seketika
+
+            if (!$stored || !isset($stored['token']) || !hash_equals($stored['token'], (string)$token) || now()->timestamp > ($stored['expires_at'] ?? 0)) {
+                session()->flash('error', 'Otorisasi PIN Admin tidak valid, telah kedaluwarsa, atau ditolak.');
+                return;
+            }
+
             $penalty = Penalty::findOrFail($this->overridePenaltyId);
 
             $penalty->update([
@@ -104,12 +124,14 @@ class Settlement extends Component
         DB::beginTransaction();
         try {
             $totalPenalty = $this->totalPenalty;
+            $balanceDue = $this->balanceDue;
+            $totalObligation = $this->totalObligation;
             $heldDeposits = $this->rental->deposits->where('status', 'HELD');
             $heldDepositTotal = $heldDeposits->sum('amount');
 
-            if ($totalPenalty <= $heldDepositTotal) {
-                // Deposit cukup untuk menutupi seluruh denda
-                $remainingDeposit = $heldDepositTotal - $totalPenalty;
+            if ($totalObligation <= $heldDepositTotal) {
+                // Deposit cukup untuk menutupi seluruh kewajiban (sisa pokok + denda)
+                $remainingDeposit = $heldDepositTotal - $totalObligation;
 
                 foreach ($heldDeposits as $deposit) {
                     $deposit->update([
@@ -123,46 +145,81 @@ class Settlement extends Component
                     $penalty->update(['is_settled' => true]);
                 }
 
-                $msg = "Penyelesaian berhasil! Denda sebesar Rp " . number_format($totalPenalty, 0, ',', '.') . " dipotong dari deposit. Kembalikan sisa uang deposit Rp " . number_format($remainingDeposit, 0, ',', '.') . " ke pelanggan.";
+                // Jika ada sisa sewa pokok, catat pelunasan via pemotongan deposit
+                if ($balanceDue > 0) {
+                    Payment::create([
+                        'rental_id' => $this->rental->id,
+                        'type' => 'rental_balance',
+                        'method' => 'DEPOSIT_DEDUCTION',
+                        'amount' => $balanceDue,
+                        'paid_at' => now(),
+                    ]);
+                }
+
+                $msg = "Penyelesaian berhasil! Total kewajiban sebesar Rp " . number_format($totalObligation, 0, ',', '.') . " dipotong dari deposit. Kembalikan sisa uang deposit Rp " . number_format($remainingDeposit, 0, ',', '.') . " ke pelanggan.";
 
             } else {
-                // Denda melebihi deposit -> Seluruh deposit disita & kasir menagih sisanya
-                $shortage = $totalPenalty - $heldDepositTotal;
+                // Kewajiban melebihi deposit -> Seluruh deposit disita & kasir menagih sisanya
+                $shortage = $totalObligation - $heldDepositTotal;
 
                 if ($this->amountPaid < $shortage) {
-                    $this->addError('amountPaid', "Uang yang diterima (Rp " . number_format($this->amountPaid, 0, ',', '.') . ") belum mencukupi kekurangan denda (Rp " . number_format($shortage, 0, ',', '.') . ").");
+                    $this->addError('amountPaid', "Uang yang diterima (Rp " . number_format($this->amountPaid, 0, ',', '.') . ") belum mencukupi kekurangan pembayaran (Rp " . number_format($shortage, 0, ',', '.') . ").");
                     DB::rollBack();
                     return;
                 }
 
-                // Sita deposit
+                // Proses deposit: uang jaminan disita untuk menutup biaya, sedangkan dokumen identitas fisik (KTP) dikembalikan ke pelanggan
                 foreach ($heldDeposits as $deposit) {
-                    $deposit->update([
-                        'status' => 'FORFEITED',
+                    if ($deposit->type === 'DOC' || empty($deposit->amount)) {
+                        $deposit->update([
+                            'status' => 'RETURNED',
+                            'retention_deadline' => now()->addDays(30),
+                        ]);
+                    } else {
+                        $deposit->update([
+                            'status' => 'FORFEITED',
+                        ]);
+                    }
+                }
+
+                // Catat pembayaran sisa pokok sewa jika ada
+                if ($balanceDue > 0) {
+                    Payment::create([
+                        'rental_id' => $this->rental->id,
+                        'type' => 'rental_balance',
+                        'method' => $this->additionalPaymentMethod,
+                        'amount' => $balanceDue,
+                        'paid_at' => now(),
                     ]);
                 }
 
-                // Catat pembayaran tambahan ke tabel payments
-                Payment::create([
-                    'rental_id' => $this->rental->id,
-                    'type' => 'penalty',
-                    'method' => $this->additionalPaymentMethod,
-                    'amount' => $this->amountPaid,
-                    'paid_at' => now(),
-                ]);
+                // Catat pembayaran denda jika ada
+                $penaltyPaid = max(0, $this->amountPaid - $balanceDue);
+                if ($totalPenalty > 0) {
+                    Payment::create([
+                        'rental_id' => $this->rental->id,
+                        'type' => 'penalty',
+                        'method' => $this->additionalPaymentMethod,
+                        'amount' => $penaltyPaid,
+                        'paid_at' => now(),
+                    ]);
+                }
 
                 // Tandai denda lunas
                 foreach ($this->pendingPenalties as $penalty) {
                     $penalty->update(['is_settled' => true]);
                 }
 
-                $msg = "Penyelesaian berhasil! Deposit disita penuh dan sisa denda Rp " . number_format($shortage, 0, ',', '.') . " telah dibayar lunas.";
+                $msg = "Penyelesaian berhasil! Sisa kewajiban Rp " . number_format($shortage, 0, ',', '.') . " telah dibayar lunas.";
             }
 
-            // Selesaikan transaksi
-            $this->rental->update(['status' => 'COMPLETED']);
+            // Selesaikan transaksi & update down_payment_amount menjadi total_price (lunas penuh)
+            $this->rental->update([
+                'status' => 'COMPLETED',
+                'down_payment_amount' => $this->rental->total_price,
+            ]);
 
-            AuditLogger::log('UPDATE', 'Rental', $this->rental->id, "Transaksi selesai sepenuhnya setelah penyelesaian sengketa & denda.");
+            AuditLogger::log('UPDATE', 'Rental', $this->rental->id, "Transaksi selesai sepenuhnya setelah penyelesaian sengketa & pelunasan sewa.");
 
             DB::commit();
 

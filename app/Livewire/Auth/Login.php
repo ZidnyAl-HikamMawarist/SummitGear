@@ -46,9 +46,10 @@ class Login extends Component
         $user = User::where('email', $this->email)->first();
 
         if ($user && Hash::check($this->password, $user->password)) {
-            // Cek apakah user adalah admin dan memiliki 2FA aktif
-            if ($user->role === 'admin' && $user->hasTwoFactorEnabled()) {
+            // Cek apakah user memiliki 2FA aktif (semua role yang mengaktifkan 2FA wajib diverifikasi)
+            if ($user->hasTwoFactorEnabled()) {
                 RateLimiter::clear($throttleKey);
+                session()->put('2fa_pending_user_id', $user->id);
                 $this->tempUserId = $user->id;
                 $this->requires2fa = true;
                 $this->twoFactorCode = '';
@@ -77,12 +78,21 @@ class Login extends Component
 
     public function verify2fa(TwoFactorService $twoFactorService)
     {
-        if (!$this->tempUserId) {
+        $sessionUserId = session()->get('2fa_pending_user_id');
+        if (!$sessionUserId || ($this->tempUserId && $this->tempUserId !== $sessionUserId)) {
             $this->cancel2fa();
+            $this->addError('email', 'Sesi verifikasi 2FA tidak valid atau telah kedaluwarsa.');
             return;
         }
 
-        $user = User::findOrFail($this->tempUserId);
+        $user = User::findOrFail($sessionUserId);
+
+        $throttleKey = '2fa_verify|' . $user->id . '|' . request()->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $this->addError('twoFactorCode', "Terlalu banyak percobaan salah. Silakan coba lagi dalam " . ceil($seconds / 60) . " menit.");
+            return;
+        }
 
         if ($this->useRecoveryCode) {
             $this->validate([
@@ -95,16 +105,26 @@ class Login extends Component
             $inputCode = strtoupper(trim($this->recoveryCode));
 
             if (($key = array_search($inputCode, $codes)) !== false) {
+                RateLimiter::clear($throttleKey);
+                session()->forget('2fa_pending_user_id');
+
                 // Hapus kode recovery yang sudah terpakai
                 unset($codes[$key]);
                 $user->update(['two_factor_recovery_codes' => array_values($codes)]);
 
                 Auth::login($user);
-                AuditLogger::log('LOGIN', 'User', $user->id, "Admin login menggunakan Recovery Code darurat.");
+                AuditLogger::log('LOGIN', 'User', $user->id, "User login menggunakan Recovery Code darurat.");
                 session()->regenerate();
+
+                if ($user->role === 'kasir') {
+                    return redirect()->route('admin.transactions.create');
+                } elseif ($user->role === 'gudang') {
+                    return redirect()->route('gudang.dashboard');
+                }
                 return redirect()->route('dashboard');
             }
 
+            RateLimiter::hit($throttleKey, 300);
             $this->addError('recoveryCode', 'Kode pemulihan tidak valid atau sudah pernah digunakan.');
             return;
         }
@@ -117,17 +137,28 @@ class Login extends Component
         ]);
 
         if ($twoFactorService->verifyKey($user->two_factor_secret, $this->twoFactorCode)) {
+            RateLimiter::clear($throttleKey);
+            session()->forget('2fa_pending_user_id');
+
             Auth::login($user);
-            AuditLogger::log('LOGIN', 'User', $user->id, "Admin login sukses dengan verifikasi Google Authenticator 2FA.");
+            AuditLogger::log('LOGIN', 'User', $user->id, "User login sukses dengan verifikasi Google Authenticator 2FA.");
             session()->regenerate();
+
+            if ($user->role === 'kasir') {
+                return redirect()->route('admin.transactions.create');
+            } elseif ($user->role === 'gudang') {
+                return redirect()->route('gudang.dashboard');
+            }
             return redirect()->route('dashboard');
         }
 
+        RateLimiter::hit($throttleKey, 300);
         $this->addError('twoFactorCode', 'Kode verifikasi Google Authenticator tidak cocok atau telah kedaluwarsa.');
     }
 
     public function cancel2fa()
     {
+        session()->forget('2fa_pending_user_id');
         $this->requires2fa = false;
         $this->tempUserId = null;
         $this->twoFactorCode = '';

@@ -65,15 +65,25 @@ class PinApproval extends Component
         if ($isApproved) {
             RateLimiter::clear($throttleKey);
             $this->isOpen = false;
+
+            // Generate Secure One-Time Server-Side Authorization Token
+            $approvalToken = \Illuminate\Support\Str::random(40);
+            session()->put('pin_approval_token_' . $this->action, [
+                'token' => $approvalToken,
+                'action' => $this->action,
+                'approver_id' => $approvedBy,
+                'expires_at' => now()->addMinutes(2)->timestamp,
+            ]);
             
             // Format untuk UserManagement
-            $this->dispatch('pin-approved', action: $this->action, data: $this->data, approvedBy: $approvedBy);
+            $this->dispatch('pin-approved', action: $this->action, data: $this->data, approvedBy: $approvedBy, token: $approvalToken);
 
             // Format untuk Settlement & Invoice
             $this->dispatch('pinApproved', [
                 'action' => $this->action,
                 'payload' => $this->data,
                 'approver_id' => $approvedBy,
+                'token' => $approvalToken,
             ]);
         } else {
             RateLimiter::hit($throttleKey, 300); // Blokir 5 menit

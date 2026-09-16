@@ -248,12 +248,12 @@
 
                     <!-- Grid Recovery Codes -->
                     <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
-                        <div class="grid grid-cols-2 gap-2 font-mono text-xs font-bold text-slate-800 text-center">
-                            @forelse($recoveryCodes as $code)
-                                <div class="p-2 bg-white rounded border border-slate-200 select-all">{{ $code }}</div>
-                            @empty
-                                <div class="col-span-2 text-slate-400 text-xs py-2">Belum ada kode pemulihan.</div>
-                            @endforelse
+                        <div class="grid grid-cols-2 gap-2">
+                            @foreach($recoveryCodes as $code)
+                                <div class="bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-center font-mono text-xs font-bold tracking-widest text-slate-800 shadow-2xs select-all">
+                                    {{ $code }}
+                                </div>
+                            @endforeach
                         </div>
                     </div>
 
@@ -264,6 +264,44 @@
                     <div class="flex justify-end pt-2">
                         <flux:button type="button" wire:click="closeRecoveryModal" variant="primary">
                             Saya Telah Menyimpan Kode Ini
+                        </flux:button>
+                    </div>
+                </flux:card>
+            </div>
+            @endif
+
+            <!-- Modal Konfirmasi Nonaktifkan 2FA (Step-Up Authentication) -->
+            @if($showDisable2faModal)
+            <div class="fixed inset-0 z-50 flex items-center justify-center p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" wire:click="closeDisable2faModal"></div>
+                
+                <flux:card class="relative z-10 w-full max-w-md space-y-4 shadow-2xl">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center shrink-0 text-red-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-base font-bold text-slate-900">Konfirmasi Nonaktifkan 2FA</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Untuk keamanan, masukkan kata sandi akun Anda untuk memverifikasi tindakan ini.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <flux:input type="password" wire:model="disable2faPassword" placeholder="Masukkan kata sandi Anda..." wire:keydown.enter="confirmDisableTwoFactor" autofocus />
+                        @error('disable2faPassword')
+                            <span class="text-xs text-red-600 font-bold block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-2">
+                        <flux:button type="button" wire:click="closeDisable2faModal" variant="subtle">
+                            Batal
+                        </flux:button>
+                        <flux:button type="button" wire:click="confirmDisableTwoFactor" variant="danger" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="confirmDisableTwoFactor">Nonaktifkan 2FA</span>
+                            <span wire:loading wire:target="confirmDisableTwoFactor">Memverifikasi...</span>
                         </flux:button>
                     </div>
                 </flux:card>
