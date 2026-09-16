@@ -23,10 +23,10 @@ class SendPickupReminderJob implements ShouldQueue
 
         // Cari rental online aktif yang jadwalnya hari ini dan belum pernah dikirim reminder
         $upcomingRentals = Rental::where('source', 'online')
-            ->whereIn('status', ['PENDING_PAYMENT', 'BOOKED'])
+            ->whereIn('status', ['BOOKED', 'DP_PAID', 'PAID'])
             ->whereDate('start_date', $today)
             ->whereNull('pickup_reminder_sent_at')
-            ->with(['customer', 'details.itemUnit.item'])
+            ->with(['customer', 'details.itemUnit.item', 'payments'])
             ->get();
 
         Log::info("[PICKUP REMINDER JOB] Memeriksa jadwal hari-H ({$today}), ditemukan: " . $upcomingRentals->count() . " booking.");
@@ -45,12 +45,19 @@ class SendPickupReminderJob implements ShouldQueue
                 if ($customer && !empty($customer->phone)) {
                     $pickupTime = Carbon::parse($rental->start_date)->format('H:i') . ' WIB';
                     $deadline = Carbon::parse($rental->start_date)->addHours(2)->format('H:i') . ' WIB';
+
+                    $totalPaid = $rental->payments->where('status', 'PAID')->sum('amount');
+                    $balanceDue = max(0, $rental->total_price - $totalPaid);
+                    $paymentLine = $balanceDue > 0
+                        ? "• *Sisa Pembayaran:* Rp " . number_format($balanceDue, 0, ',', '.') . " (Bayar di Kasir saat pickup)\n\n"
+                        : "• *Status Pembayaran:* LUNAS\n\n";
+
                     $waMsg = "*PENGINGAT HARI-H PENGAMBILAN ALAT SUMMITGEAR*\n\n"
                            . "Halo {$customer->name}! Hari ini adalah jadwal pengambilan alat outdoor kamu di SummitGear.\n\n"
                            . "• *Kode Booking:* {$rental->rental_code}\n"
                            . "• *Jam Pengambilan:* {$pickupTime}\n"
                            . "• *Batas Maks. Toleransi:* {$deadline}\n"
-                           . "• *Total Pembayaran:* Rp " . number_format($rental->total_price, 0, ',', '.') . " (Bayar di Kasir)\n\n"
+                           . $paymentLine
                            . "Mohon bawa *KTP fisik asli* dan tunjukkan kode booking ke kasir. Sampai jumpa di toko!";
                     \App\Services\WhatsAppService::sendMessage($customer->phone, $waMsg, $rental->rental_code);
                 }

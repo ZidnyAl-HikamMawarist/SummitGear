@@ -23,17 +23,25 @@ class ExpireOnlineBookingJob implements ShouldQueue
         $deadline = Carbon::now()->subHours($expireHours);
 
         $now = Carbon::now();
-        $expiredBookings = Rental::where('source', 'online')
-            ->whereIn('status', ['PENDING_PAYMENT', 'BOOKED'])
-            ->where(function ($q) use ($deadline, $now) {
-                $q->where('created_at', '<=', $deadline)
-                  ->orWhere('start_date', '<=', $now->copy()->subHours(2));
+        $expiredBookings = Rental::where(function ($rootQ) use ($deadline, $now, $expireHours) {
+                $rootQ->where(function ($query) use ($deadline, $now) {
+                    $query->where('source', 'online')
+                          ->whereIn('status', ['PENDING_PAYMENT', 'BOOKED'])
+                          ->where(function ($q) use ($deadline, $now) {
+                              $q->where('created_at', '<=', $deadline)
+                                ->orWhere('start_date', '<=', $now->copy()->subHours(2));
+                          });
+                })->orWhere(function ($query) use ($now, $expireHours) {
+                    $query->where('source', 'online')
+                          ->whereIn('status', ['DP_PAID', 'PAID'])
+                          ->where('start_date', '<=', $now->copy()->subHours($expireHours));
+                });
             })
             ->with('details.itemUnit', 'customer')
             ->get();
 
         foreach ($expiredBookings as $booking) {
-            DB::transaction(function () use ($booking, $expireHours) {
+            DB::transaction(function () use ($booking) {
                 // Kembalikan status unit ke 'Available'
                 foreach ($booking->details as $detail) {
                     if ($detail->itemUnit) {
@@ -45,9 +53,13 @@ class ExpireOnlineBookingJob implements ShouldQueue
                 $booking->update(['status' => 'CANCELLED']);
 
                 \App\Services\AuditLogger::log('SYSTEM', 'Rental', $booking->id, "Auto-cancel booking online {$booking->rental_code} karena melewati batas waktu pengambilan.");
-                
-                \App\Services\WhatsAppService::sendBookingCancellation($booking, "Barang tidak diambil melewati batas toleransi waktu.");
             });
+
+            try {
+                \App\Services\WhatsAppService::sendBookingCancellation($booking, "Barang tidak diambil melewati batas toleransi waktu.");
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("[EXPIRE ONLINE BOOKING] Gagal kirim WA cancel ke {$booking->rental_code}: " . $e->getMessage());
+            }
         }
     }
 }

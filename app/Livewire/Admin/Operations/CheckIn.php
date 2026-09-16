@@ -64,9 +64,9 @@ class CheckIn extends Component
 
     public function submitCheckIn()
     {
-        // Guard: hanya rental yang sedang RENTED_OUT yang bisa diproses check-in
-        if ($this->rental->status !== 'RENTED_OUT') {
-            $this->addError('error', "Transaksi ini tidak dalam status RENTED_OUT (status: {$this->rental->status}).");
+        // Guard: hanya rental yang sedang RENTED_OUT atau OVERDUE yang bisa diproses check-in
+        if (!in_array($this->rental->status, ['RENTED_OUT', 'OVERDUE'])) {
+            $this->addError('error', "Transaksi ini tidak dalam status RENTED_OUT atau OVERDUE (status: {$this->rental->status}).");
             return;
         }
 
@@ -138,13 +138,35 @@ class CheckIn extends Component
                 $lateFeePerHour = DB::table('settings')->where('key', 'late_fee_per_hour')->value('value') ?? 5000;
                 $lateAmount = $hoursLate * (int)$lateFeePerHour;
 
-                Penalty::create([
-                    'rental_id' => $this->rental->id,
-                    'reason' => "Keterlambatan pengembalian ({$hoursLate} jam)",
-                    'amount' => $lateAmount,
-                    'is_settled' => false,
-                ]);
+                // Cari apakah sudah ada denda keterlambatan dari background job (cegah duplikasi)
+                $existingLatePenalty = Penalty::where('rental_id', $this->rental->id)
+                    ->where(function ($q) {
+                        $q->where('reason', 'like', 'Denda keterlambatan%')
+                          ->orWhere('reason', 'like', 'Keterlambatan%');
+                    })
+                    ->where('is_settled', false)
+                    ->first();
 
+                if ($existingLatePenalty) {
+                    $existingLatePenalty->update([
+                        'amount' => $lateAmount,
+                        'reason' => "Keterlambatan pengembalian ({$hoursLate} jam)",
+                    ]);
+                } else {
+                    Penalty::create([
+                        'rental_id' => $this->rental->id,
+                        'reason' => "Keterlambatan pengembalian ({$hoursLate} jam)",
+                        'amount' => $lateAmount,
+                        'is_settled' => false,
+                    ]);
+                }
+
+                $hasIssues = true;
+            }
+
+            // 4b. Cek apakah masih ada sisa sewa pokok (DP yang belum dilunasi)
+            $balanceDue = (int) $this->rental->balance_due;
+            if ($balanceDue > 0) {
                 $hasIssues = true;
             }
 
@@ -152,7 +174,7 @@ class CheckIn extends Component
             $newRentalStatus = $hasIssues ? 'PENDING_SETTLEMENT' : 'COMPLETED';
             $this->rental->update(['status' => $newRentalStatus]);
 
-            // 6. Jika tidak ada denda/masalah, kembalikan deposit jaminan ke pelanggan
+            // 6. Jika tidak ada denda/masalah dan sewa sudah lunas, kembalikan deposit jaminan ke pelanggan
             if (!$hasIssues) {
                 foreach ($this->rental->deposits as $deposit) {
                     if ($deposit->status === 'HELD') {
@@ -169,10 +191,13 @@ class CheckIn extends Component
             DB::commit();
 
             if ($hasIssues) {
-                session()->flash('message', 'Check-In selesai dengan catatan sengketa/denda. Silakan selesaikan denda di modul penyelesaian transaksi.');
+                $notice = $balanceDue > 0 
+                    ? 'Check-In selesai. Pelanggan masih memiliki sisa pokok sewa/denda sebesar Rp ' . number_format($balanceDue, 0, ',', '.') . '. Mengalihkan ke halaman penyelesaian...'
+                    : 'Check-In selesai dengan catatan sengketa/denda. Silakan selesaikan denda di modul penyelesaian transaksi.';
+                session()->flash('message', $notice);
                 return redirect()->route('admin.settlements.show', $this->rental->id);
             } else {
-                session()->flash('message', 'Pengembalian barang sukses! Semua unit telah kembali dalam kondisi baik.');
+                session()->flash('message', 'Pengembalian barang sukses! Semua unit telah kembali dalam kondisi baik dan lunas.');
                 return redirect()->route('admin.operations.handover');
             }
 

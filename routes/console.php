@@ -72,7 +72,7 @@ use App\Jobs\ExpireOnlineBookingJob;
 use App\Jobs\SendPickupReminderJob;
 
 Schedule::job(new CalculateLatePenaltyJob)->hourly();
-Schedule::job(new ReleaseHoldBookingJob)->everyThirtyMinutes();
+Schedule::job(new ReleaseHoldBookingJob)->everyFiveMinutes();
 Schedule::job(new ExpireOnlineBookingJob)->hourly();
 Schedule::job(new SendPickupReminderJob)->everyThirtyMinutes();
 

@@ -55,14 +55,16 @@ class ReleaseHoldBookingJob implements ShouldQueue
                     $rental->id,
                     "Auto-cancel booking {$rental->rental_code} karena batas waktu pembayaran 10 menit telah habis. Sebanyak {$unitCount} unit dikembalikan ke katalog."
                 );
-
-                try {
-                    WhatsAppService::sendBookingCancellation(
-                        $rental,
-                        "Batas waktu pembayaran 10 menit telah berakhir dan pesanan dibatalkan otomatis."
-                    );
-                } catch (\Throwable $e) {}
             });
+
+            try {
+                WhatsAppService::sendBookingCancellation(
+                    $rental,
+                    "Batas waktu pembayaran 10 menit telah berakhir dan pesanan dibatalkan otomatis."
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("[RELEASE HOLD BOOKING] Gagal kirim WA cancel ke {$rental->rental_code}: " . $e->getMessage());
+            }
         }
     }
 }

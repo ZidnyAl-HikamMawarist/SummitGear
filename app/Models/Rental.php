@@ -139,6 +139,11 @@ class Rental extends Model
 
     public function getBalanceDueAttribute()
     {
-        return max(0, $this->total_price - (int)$this->down_payment_amount);
+        $paid = $this->payments->whereIn('type', ['rental', 'rental_balance', 'DP', 'FULL'])->sum('amount');
+        if ($paid > 0) {
+            return max(0, (int)$this->total_price - (int)$paid);
+        }
+
+        return max(0, (int)$this->total_price - (int)$this->down_payment_amount);
     }
 }

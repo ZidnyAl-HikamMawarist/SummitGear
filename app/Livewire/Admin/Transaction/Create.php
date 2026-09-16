@@ -89,6 +89,19 @@ class Create extends Component
         return InventoryItem::select('category')->distinct()->pluck('category');
     }
 
+    public function getAllCartUnitIds(): array
+    {
+        $ids = [];
+        foreach ($this->cart as $item) {
+            if (!empty($item['unit_ids'])) {
+                $ids = array_merge($ids, $item['unit_ids']);
+            } elseif (!empty($item['unit_id'])) {
+                $ids[] = $item['unit_id'];
+            }
+        }
+        return array_values(array_unique($ids));
+    }
+
     public function getAvailableItemsProperty()
     {
         if (!$this->start_date || !$this->end_date) {
@@ -97,10 +110,10 @@ class Create extends Component
 
         $start = Carbon::parse($this->start_date)->startOfDay();
         $end = Carbon::parse($this->end_date)->endOfDay();
-        $cartUnitIds = collect($this->cart)->pluck('unit_id')->toArray();
+        $cartUnitIds = $this->getAllCartUnitIds();
 
         // Ambil inventory items
-        $query = InventoryItem::query();
+        $query = InventoryItem::with('packageItems');
         
         if ($this->searchQuery) {
             $query->where(function ($q) {
@@ -117,6 +130,41 @@ class Create extends Component
 
         // Hitung available units per item
         $items = $items->map(function ($item) use ($start, $end, $cartUnitIds) {
+            if ($item->is_package) {
+                $pkgComponents = $item->packageItems;
+                if ($pkgComponents->isEmpty()) {
+                    $item->available_count = 0;
+                    return $item;
+                }
+
+                $maxPackages = PHP_INT_MAX;
+                foreach ($pkgComponents as $pi) {
+                    $compCount = ItemUnit::where('item_id', $pi->component_item_id)
+                        ->where('status', 'Available')
+                        ->whereNotIn('id', $cartUnitIds)
+                        ->whereDoesntHave('rentalDetails.rental', function ($q) use ($start, $end) {
+                            $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
+                              ->where(function ($query) use ($start, $end) {
+                                  $query->whereBetween('start_date', [$start, $end])
+                                        ->orWhereBetween('end_date', [$start, $end])
+                                        ->orWhere(function ($subQuery) use ($start, $end) {
+                                            $subQuery->where('start_date', '<=', $start)
+                                                     ->where('end_date', '>=', $end);
+                                        });
+                              });
+                        })->count();
+
+                    $reqQty = max(1, (int) $pi->quantity);
+                    $availForComponent = (int) floor($compCount / $reqQty);
+                    if ($availForComponent < $maxPackages) {
+                        $maxPackages = $availForComponent;
+                    }
+                }
+
+                $item->available_count = $maxPackages === PHP_INT_MAX ? 0 : $maxPackages;
+                return $item;
+            }
+
             $availableCount = ItemUnit::where('item_id', $item->id)
                 ->where('status', 'Available')
                 ->whereNotIn('id', $cartUnitIds)
@@ -148,9 +196,73 @@ class Create extends Component
 
         $start = Carbon::parse($this->start_date)->startOfDay();
         $end = Carbon::parse($this->end_date)->endOfDay();
-        $cartUnitIds = collect($this->cart)->pluck('unit_id')->toArray();
+        $cartUnitIds = $this->getAllCartUnitIds();
 
-        // Cari 1 unit yang available
+        $invItem = InventoryItem::with('packageItems')->findOrFail($inventoryItemId);
+
+        // Jika barang adalah paket (is_package = 1)
+        if ($invItem->is_package) {
+            $pkgComponents = $invItem->packageItems;
+            if ($pkgComponents->isEmpty()) {
+                $this->addError('cart', 'Paket ini belum memiliki komponen alat yang dikonfigurasi.');
+                return;
+            }
+
+            $selectedUnits = [];
+            $tempCartUnitIds = $cartUnitIds;
+
+            foreach ($pkgComponents as $pi) {
+                $reqQty = max(1, (int) $pi->quantity);
+                $units = ItemUnit::with('item')
+                    ->where('item_id', $pi->component_item_id)
+                    ->where('status', 'Available')
+                    ->whereNotIn('id', $tempCartUnitIds)
+                    ->whereDoesntHave('rentalDetails.rental', function ($q) use ($start, $end) {
+                        $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
+                          ->where(function ($query) use ($start, $end) {
+                              $query->whereBetween('start_date', [$start, $end])
+                                    ->orWhereBetween('end_date', [$start, $end])
+                                    ->orWhere(function ($subQuery) use ($start, $end) {
+                                        $subQuery->where('start_date', '<=', $start)
+                                                 ->where('end_date', '>=', $end);
+                                    });
+                          });
+                    })
+                    ->take($reqQty)
+                    ->get();
+
+                if ($units->count() < $reqQty) {
+                    $this->addError('cart', "Stok komponen paket tidak mencukupi untuk tanggal tersebut.");
+                    return;
+                }
+
+                foreach ($units as $u) {
+                    $selectedUnits[] = $u;
+                    $tempCartUnitIds[] = $u->id;
+                }
+            }
+
+            $unitIds = collect($selectedUnits)->pluck('id')->toArray();
+            $serialNumbers = collect($selectedUnits)->pluck('serial_number')->toArray();
+
+            $this->cart[] = [
+                'unit_id' => $unitIds[0] ?? null,
+                'unit_ids' => $unitIds,
+                'inventory_item_id' => $invItem->id,
+                'item_name' => $invItem->name,
+                'serial_number' => implode(', ', $serialNumbers),
+                'serial_numbers' => $serialNumbers,
+                'rental_type' => $invItem->rental_type,
+                'base_price' => $invItem->price_per_day,
+                'photo_url' => $invItem->photo_url,
+                'is_package' => true,
+            ];
+
+            $this->calculateTotalPrice();
+            return;
+        }
+
+        // Cari 1 unit yang available untuk item reguler
         $unit = ItemUnit::with('item')
             ->where('item_id', $inventoryItemId)
             ->where('status', 'Available')
@@ -177,12 +289,15 @@ class Create extends Component
 
         $this->cart[] = [
             'unit_id' => $unit->id,
+            'unit_ids' => [$unit->id],
             'inventory_item_id' => $unit->item_id,
             'item_name' => $unit->item->name,
             'serial_number' => $unit->serial_number,
+            'serial_numbers' => [$unit->serial_number],
             'rental_type' => $unit->item->rental_type,
             'base_price' => $basePrice,
-            'photo_url' => $unit->item->photo_url
+            'photo_url' => $unit->item->photo_url,
+            'is_package' => false,
         ];
 
         $this->calculateTotalPrice();
@@ -237,7 +352,8 @@ class Create extends Component
             }
             $grouped[$itemId]['quantity'] += 1;
             $grouped[$itemId]['total_base_price'] += (float) $item['base_price'];
-            $grouped[$itemId]['serial_numbers'][] = $item['serial_number'];
+            $sns = $item['serial_numbers'] ?? [$item['serial_number']];
+            $grouped[$itemId]['serial_numbers'] = array_merge($grouped[$itemId]['serial_numbers'], $sns);
             $grouped[$itemId]['cart_indexes'][] = $index;
         }
         return collect($grouped)->values();
@@ -257,7 +373,7 @@ class Create extends Component
             for ($i = 0; $i < $days; $i++) {
                 $currentDate = Carbon::parse($this->start_date)->addDays($i);
                 $dayOfWeek = $currentDate->dayOfWeekIso;
-                $dayType = $dayOfWeek <= 4 ? 'weekday' : 'weekend';
+                $dayType = $dayOfWeek <= 5 ? 'weekday' : 'weekend';
 
                 $multiplier = 1.0;
                 $ruleKey = $item['inventory_item_id'] . '-' . $dayType;
@@ -305,9 +421,23 @@ class Create extends Component
             $start = Carbon::parse($this->start_date)->startOfDay();
             $end = Carbon::parse($this->end_date)->endOfDay();
 
+            $cartUnitIds = $this->getAllCartUnitIds();
+
+            // Kunci baris unit fisik di PostgreSQL dengan Pessimistic Locking
+            $lockedUnits = ItemUnit::whereIn('id', $cartUnitIds)
+                ->where('status', 'Available')
+                ->lockForUpdate()
+                ->get();
+
+            if ($lockedUnits->count() !== count($cartUnitIds)) {
+                $this->addError('cart', 'Sebagian unit baru saja disewa atau sedang tidak tersedia. Periksa kembali keranjang Anda.');
+                DB::rollBack();
+                return;
+            }
+
             // Cegah race condition / double-booking unit
-            foreach ($this->cart as $cartItem) {
-                $isConflicted = RentalDetail::where('item_unit_id', $cartItem['unit_id'])
+            foreach ($cartUnitIds as $cUnitId) {
+                $isConflicted = RentalDetail::where('item_unit_id', $cUnitId)
                     ->whereHas('rental', function ($q) use ($start, $end) {
                         $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
                           ->where(function ($query) use ($start, $end) {
@@ -318,10 +448,12 @@ class Create extends Component
                                             ->where('end_date', '>=', $end);
                                     });
                           });
-                    })->exists();
+                    })
+                    ->lockForUpdate()
+                    ->exists();
 
                 if ($isConflicted) {
-                    $this->addError('cart', "Unit {$cartItem['item_name']} (SN: {$cartItem['serial_number']}) sudah terbooking oleh transaksi lain untuk periode tersebut.");
+                    $this->addError('cart', "Salah satu unit alat sudah terbooking oleh transaksi lain untuk periode tersebut.");
                     DB::rollBack();
                     return;
                 }
@@ -343,16 +475,24 @@ class Create extends Component
                 'scheduled_return_time' => $this->scheduled_return_time,
                 'total_price' => $this->total_price,
                 'discount' => $this->discount,
+                'down_payment_amount' => $this->total_price,
+                'payment_type' => 'full',
                 'status' => 'BOOKED', 
                 'source' => 'walk_in',
             ]);
 
             foreach ($this->cart as $item) {
-                RentalDetail::create([
-                    'rental_id' => $rental->id,
-                    'item_unit_id' => $item['unit_id'],
-                    'price_per_day' => $item['base_price'],
-                ]);
+                $unitIds = $item['unit_ids'] ?? [$item['unit_id']];
+                $unitCount = count($unitIds);
+                $pricePerUnit = $unitCount > 0 ? (int) round($item['base_price'] / $unitCount) : $item['base_price'];
+
+                foreach ($unitIds as $uId) {
+                    RentalDetail::create([
+                        'rental_id' => $rental->id,
+                        'item_unit_id' => $uId,
+                        'price_per_day' => $pricePerUnit,
+                    ]);
+                }
             }
 
             Payment::create([

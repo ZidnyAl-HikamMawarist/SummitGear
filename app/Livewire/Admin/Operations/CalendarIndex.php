@@ -77,6 +77,16 @@ class CalendarIndex extends Component
         $activeDetails = RentalDetail::with(['rental.customer', 'itemUnit'])
             ->whereHas('rental', function ($q) use ($periodStart, $periodEnd) {
                 $q->whereNotIn('status', ['CANCELLED', 'VOID'])
+                  ->where(function ($sq) {
+                      $sq->where('status', '!=', 'PENDING_PAYMENT')
+                         ->orWhere(function ($subQ) {
+                             $subQ->where('status', 'PENDING_PAYMENT')
+                                  ->where(function ($inner) {
+                                      $inner->whereNull('expires_at')
+                                            ->orWhere('expires_at', '>', Carbon::now());
+                                  });
+                         });
+                  })
                   ->where(function ($query) use ($periodStart, $periodEnd) {
                       $query->whereBetween('start_date', [$periodStart, $periodEnd])
                             ->orWhereBetween('end_date', [$periodStart, $periodEnd])

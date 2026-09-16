@@ -234,6 +234,12 @@ class Booking extends Component
         $this->perPage = 12;
     }
 
+    public function setCategory($category)
+    {
+        $this->selectedCategory = $category;
+        $this->perPage = 12;
+    }
+
     public function getEstimatedTotalPriceProperty()
     {
         if ($this->duration_days > 0 && $this->total_price > 0) {
@@ -266,7 +272,7 @@ class Booking extends Component
     {
         $cartUnitIds = $this->getAllCartUnitIds();
 
-        $query = InventoryItem::query();
+        $query = InventoryItem::with('packageItems');
         
         if ($this->searchQuery) {
             $query->where(function ($q) {
@@ -293,8 +299,12 @@ class Booking extends Component
         $end = $hasDates ? Carbon::parse($this->end_date)->endOfDay() : null;
 
         $itemIds = $items->pluck('id');
+        $packageComponentIds = $items->where('is_package', true)->flatMap(function ($pkg) {
+            return $pkg->packageItems->pluck('component_item_id');
+        });
+        $allNeededItemIds = $itemIds->merge($packageComponentIds)->unique();
 
-        $unitCountsQuery = ItemUnit::whereIn('item_id', $itemIds)
+        $unitCountsQuery = ItemUnit::whereIn('item_id', $allNeededItemIds)
             ->where('status', 'Available');
 
         if (!empty($cartUnitIds)) {
@@ -336,7 +346,25 @@ class Booking extends Component
         }
 
         foreach ($items as $item) {
-            $item->available_count = (int) ($availableCounts[$item->id] ?? 0);
+            if ($item->is_package) {
+                $pkgComponents = $item->packageItems;
+                if ($pkgComponents->isEmpty()) {
+                    $item->available_count = 0;
+                } else {
+                    $maxPackages = PHP_INT_MAX;
+                    foreach ($pkgComponents as $pi) {
+                        $compAvailable = (int) ($availableCounts[$pi->component_item_id] ?? 0);
+                        $reqQty = max(1, (int) $pi->quantity);
+                        $availForComponent = (int) floor($compAvailable / $reqQty);
+                        if ($availForComponent < $maxPackages) {
+                            $maxPackages = $availForComponent;
+                        }
+                    }
+                    $item->available_count = $maxPackages === PHP_INT_MAX ? 0 : $maxPackages;
+                }
+            } else {
+                $item->available_count = (int) ($availableCounts[$item->id] ?? 0);
+            }
             $item->cart_quantity = (int) ($cartQuantities[$item->id] ?? 0);
         }
 
@@ -352,7 +380,101 @@ class Booking extends Component
     {
         $hasDates = !empty($this->start_date) && !empty($this->end_date);
         $cartUnitIds = $this->getAllCartUnitIds();
+        $invItem = InventoryItem::with('packageItems')->findOrFail($inventoryItemId);
 
+        // Jika item adalah paket (is_package = 1)
+        if ($invItem->is_package) {
+            $pkgComponents = $invItem->packageItems;
+            if ($pkgComponents->isEmpty()) {
+                $this->addError('cart', 'Paket ini belum memiliki komponen alat yang dikonfigurasi.');
+                return;
+            }
+
+            $selectedUnitIds = [];
+            $tempCartUnitIds = $cartUnitIds;
+
+            foreach ($pkgComponents as $pi) {
+                $reqQty = max(1, (int) $pi->quantity);
+
+                $compQuery = ItemUnit::where('item_id', $pi->component_item_id)
+                    ->where('status', 'Available')
+                    ->whereNotIn('id', $tempCartUnitIds);
+
+                if ($hasDates) {
+                    $start = Carbon::parse($this->start_date)->startOfDay();
+                    $end = Carbon::parse($this->end_date)->endOfDay();
+                    $compQuery->whereDoesntHave('rentalDetails.rental', function ($q) use ($start, $end) {
+                        $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
+                          ->where(function ($subStatus) {
+                              $subStatus->where('status', '!=', 'PENDING_PAYMENT')
+                                        ->orWhere(function ($expQ) {
+                                            $expQ->where('status', 'PENDING_PAYMENT')
+                                                 ->where(function ($inner) {
+                                                     $inner->whereNull('expires_at')
+                                                           ->orWhere('expires_at', '>', Carbon::now());
+                                                 });
+                                        });
+                          })
+                          ->where(function ($query) use ($start, $end) {
+                              $query->whereBetween('start_date', [$start, $end])
+                                    ->orWhereBetween('end_date', [$start, $end])
+                                    ->orWhere(function ($subQuery) use ($start, $end) {
+                                        $subQuery->where('start_date', '<=', $start)
+                                                 ->where('end_date', '>=', $end);
+                                    });
+                          });
+                    });
+                }
+
+                $units = $compQuery->take($reqQty)->get();
+
+                if ($units->count() < $reqQty) {
+                    (new ReleaseHoldBookingJob())->handle();
+                    $units = $compQuery->take($reqQty)->get();
+                }
+
+                if ($units->count() < $reqQty) {
+                    $this->addError('cart', 'Stok komponen paket tidak mencukupi untuk tanggal tersebut.');
+                    return;
+                }
+
+                foreach ($units as $u) {
+                    $selectedUnitIds[] = $u->id;
+                    $tempCartUnitIds[] = $u->id;
+                }
+            }
+
+            $foundIndex = null;
+            foreach ($this->cart as $index => $item) {
+                if ($item['inventory_item_id'] == $inventoryItemId) {
+                    $foundIndex = $index;
+                    break;
+                }
+            }
+
+            if ($foundIndex !== null) {
+                $this->cart[$foundIndex]['unit_ids'] = array_merge($this->cart[$foundIndex]['unit_ids'], $selectedUnitIds);
+                $this->cart[$foundIndex]['quantity']++;
+            } else {
+                $this->cart[] = [
+                    'inventory_item_id' => $invItem->id,
+                    'item_name' => $invItem->name,
+                    'category' => $invItem->category,
+                    'rental_type' => $invItem->rental_type,
+                    'base_price' => $invItem->price_per_day,
+                    'photo_url' => $invItem->photo_url,
+                    'quantity' => 1,
+                    'unit_ids' => $selectedUnitIds,
+                    'units_per_package' => count($selectedUnitIds),
+                    'is_package' => true,
+                ];
+            }
+
+            $this->calculateTotalPrice();
+            return;
+        }
+
+        // Regular item (is_package = 0)
         $unitQuery = ItemUnit::with('item')
             ->where('item_id', $inventoryItemId)
             ->where('status', 'Available')
@@ -432,6 +554,8 @@ class Booking extends Component
                 'photo_url' => $unit->item->photo_url,
                 'quantity' => 1,
                 'unit_ids' => [$unit->id],
+                'units_per_package' => 1,
+                'is_package' => false,
             ];
         }
 
@@ -443,7 +567,10 @@ class Booking extends Component
         foreach ($this->cart as $index => $item) {
             if ($item['inventory_item_id'] == $inventoryItemId) {
                 if ($item['quantity'] > 1) {
-                    array_pop($this->cart[$index]['unit_ids']);
+                    $unitsToPop = !empty($item['is_package']) && !empty($item['units_per_package'])
+                        ? (int) $item['units_per_package']
+                        : 1;
+                    $this->cart[$index]['unit_ids'] = array_slice($this->cart[$index]['unit_ids'], 0, -$unitsToPop);
                     $this->cart[$index]['quantity']--;
                 } else {
                     unset($this->cart[$index]);
@@ -486,7 +613,7 @@ class Booking extends Component
             for ($i = 0; $i < $days; $i++) {
                 $currentDate = Carbon::parse($this->start_date)->addDays($i);
                 $dayOfWeek = $currentDate->dayOfWeekIso;
-                $dayType = $dayOfWeek <= 4 ? 'weekday' : 'weekend';
+                $dayType = $dayOfWeek <= 5 ? 'weekday' : 'weekend';
 
                 $multiplier = 1.0;
                 $ruleKey = $item['inventory_item_id'] . '-' . $dayType;
@@ -613,11 +740,17 @@ class Booking extends Component
             $allUnits = [];
             $allUnitIds = [];
             foreach ($this->cart as $cartGroup) {
+                $isPkg = !empty($cartGroup['is_package']);
+                $unitCount = count($cartGroup['unit_ids']);
+                $pricePerUnit = ($isPkg && $unitCount > 0)
+                    ? (int) round(($cartGroup['base_price'] * $cartGroup['quantity']) / $unitCount)
+                    : (int) $cartGroup['base_price'];
+
                 foreach ($cartGroup['unit_ids'] as $unitId) {
                     $allUnits[] = [
                         'unit_id' => $unitId,
                         'item_name' => $cartGroup['item_name'],
-                        'base_price' => $cartGroup['base_price'],
+                        'base_price' => $pricePerUnit,
                     ];
                     $allUnitIds[] = $unitId;
                 }
@@ -865,7 +998,7 @@ class Booking extends Component
 
             $rental->update([
                 'status' => $newStatus,
-                'down_payment_amount' => $isDp ? $amount : 0,
+                'down_payment_amount' => $isDp ? $amount : $rental->total_price,
                 'payment_type' => $this->paymentOption,
                 'expires_at' => null, // Countdown selesai & stok aman permanen!
             ]);
@@ -877,7 +1010,10 @@ class Booking extends Component
                 "Pembayaran online berhasil via {$this->selectedPaymentMethod} ({$paymentType}: Rp " . number_format($amount, 0, ',', '.') . "). Status rental menjadi {$newStatus}."
             );
 
-            // Kirim notifikasi WA & Email
+            // Commit transaksi database terlebih dahulu agar lock baris PostgreSQL dilepas seketika
+            DB::commit();
+
+            // Kirim notifikasi WA & Email (Di luar transaksi DB agar tidak menahan lock pool database)
             try {
                 WhatsAppService::sendBookingConfirmation($rental);
             } catch (\Throwable $waEx) {
@@ -891,8 +1027,6 @@ class Booking extends Component
             } catch (\Throwable $mailEx) {
                 Log::warning("Gagal mengirim email invoice: " . $mailEx->getMessage());
             }
-
-            DB::commit();
 
             // Payload konfirmasi booking sukses
             $pickupTime = Carbon::parse($rental->start_date);
