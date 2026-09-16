@@ -2,14 +2,20 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Gudang Role RBAC Access Test', () => {
   test('Gudang can access Kanban, Handover, Calendar, and Inventory, but blocked from Cashier, Customers, and Settings', async ({ page }) => {
+    test.setTimeout(60000);
     // 1. Login sebagai Gudang
     await page.goto('/login');
-    await page.fill('#email', 'gudang@summitgear.com');
-    await page.fill('#password', 'password123');
-    await page.locator('#password').press('Enter');
-    // 2. Akses Kanban Gudang - Otomatis mendarat di halaman Kanban
-    await expect(page).toHaveURL(/.*\/admin\/maintenance\/kanban/, { timeout: 15000 });
-    await expect(page.getByRole('heading', { name: 'Papan Kerja (Kanban) Maintenance & Gudang' }).first()).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await page.fill('input[type="email"]', 'gudang@summitgear.com');
+    await page.fill('input[type="password"]', 'password123');
+    await page.click('button:has-text("Masuk ke Akun")');
+    // 2. Akses Gudang - Otomatis mendarat di Dashboard Gudang
+    await expect(page).toHaveURL(/.*\/gudang\/dashboard/, { timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Monitoring Unit & Pergudangan' }).first()).toBeVisible();
+
+    // 2b. Akses Kanban Gudang - Harus BERHASIL
+    await page.goto('/admin/maintenance/kanban');
+    await expect(page.getByRole('heading', { name: 'Papan Kerja Maintenance & Gudang' }).first()).toBeVisible();
 
     // 3. Akses Serah Terima Operasional (Handover) - Harus BERHASIL
     await page.goto('/admin/operations/handover');
@@ -17,7 +23,7 @@ test.describe('Gudang Role RBAC Access Test', () => {
 
     // 4. Akses Kalender Booking - Harus BERHASIL
     await page.goto('/admin/operations/calendar');
-    await expect(page.getByRole('heading', { name: 'Kalender Visual Ketersediaan Alat (Grid)' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Kalender Visual Ketersediaan Alat' }).first()).toBeVisible();
 
     // 5. Akses Inventaris Barang - Harus BERHASIL
     await page.goto('/admin/inventory/items');

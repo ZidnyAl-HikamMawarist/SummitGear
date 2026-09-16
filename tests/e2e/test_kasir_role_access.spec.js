@@ -4,12 +4,13 @@ test.describe('Kasir Role RBAC Access Test', () => {
   test('Kasir can access Cashier, Handover, Calendar, Customers, and Inventory, but blocked from Admin Settings and Users', async ({ page }) => {
     // 1. Login sebagai Kasir
     await page.goto('/login');
-    await page.fill('#email', 'kasir@summitgear.com');
-    await page.fill('#password', 'password123');
-    await page.locator('#password').press('Enter');
+    await page.waitForLoadState('networkidle');
+    await page.fill('input[type="email"]', 'kasir@summitgear.com');
+    await page.fill('input[type="password"]', 'password123');
+    await page.click('button:has-text("Masuk ke Akun")');
     // 2. Akses Kasir & Sewa (Create Transaction) - Otomatis mendarat di halaman Kasir
     await expect(page).toHaveURL(/.*\/admin\/transactions\/create/, { timeout: 15000 });
-    await expect(page.getByRole('heading', { name: 'Kasir & Buat Transaksi Baru' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Keranjang Sewa' })).toBeVisible();
 
     // 3. Akses Serah Terima Operasional (Handover) - Harus BERHASIL
     await page.goto('/admin/operations/handover');
@@ -17,7 +18,7 @@ test.describe('Kasir Role RBAC Access Test', () => {
 
     // 4. Akses Kalender Booking - Harus BERHASIL
     await page.goto('/admin/operations/calendar');
-    await expect(page.getByRole('heading', { name: 'Kalender Visual Ketersediaan Alat (Grid)' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Kalender Visual Ketersediaan Alat' }).first()).toBeVisible();
 
     // 5. Akses Data Pelanggan - Harus BERHASIL
     await page.goto('/admin/customers');
