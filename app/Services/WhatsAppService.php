@@ -27,12 +27,14 @@ class WhatsAppService
         }
 
         try {
-            $response = Http::withHeaders([
-                'Authorization' => $apiKey,
-            ])->post($endpoint, [
-                'target' => $phone,
-                'message' => $message,
-            ]);
+            $response = Http::timeout(10)
+                ->connectTimeout(5)
+                ->withHeaders([
+                    'Authorization' => $apiKey,
+                ])->post($endpoint, [
+                    'target' => $phone,
+                    'message' => $message,
+                ]);
 
             return [
                 'status' => $response->successful(),

@@ -28,7 +28,7 @@ class Dashboard extends Component
 
         // 1. KPI Cards data
         $todayCheckouts = Rental::whereDate('start_date', $today)
-            ->whereIn('status', ['BOOKED', 'PENDING_PAYMENT'])
+            ->whereIn('status', ['BOOKED', 'DP_PAID', 'PAID'])
             ->count();
 
         $overdueCheckins = Rental::where(function ($q) {

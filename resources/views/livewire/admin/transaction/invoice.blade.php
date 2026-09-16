@@ -29,14 +29,29 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2">
                     @if(auth()->user()->role === 'kasir')
                     <flux:button href="{{ route('admin.transactions.create') }}" variant="subtle" size="sm" icon="plus">
                         Transaksi Baru
                     </flux:button>
                     @endif
+
+                    @if(in_array($rental->status, ['BOOKED', 'DP_PAID', 'PAID']))
+                    <flux:button href="{{ route('admin.operations.checkout', $rental->id) }}" variant="primary" size="sm" icon="arrow-right">
+                        Serah Terima Barang (Check-Out)
+                    </flux:button>
+                    @elseif(in_array($rental->status, ['RENTED_OUT', 'OVERDUE']))
+                    <flux:button href="{{ route('admin.operations.checkin', $rental->id) }}" variant="primary" size="sm" icon="arrow-down-tray">
+                        Pengembalian Barang (Check-In)
+                    </flux:button>
+                    @elseif($rental->status === 'PENDING_SETTLEMENT')
+                    <flux:button href="{{ route('admin.settlements.show', $rental->id) }}" variant="primary" size="sm" icon="calculator">
+                        Selesaikan Tagihan (Settlement)
+                    </flux:button>
+                    @endif
+
                     @if($rental->status !== 'VOID' && $rental->status !== 'CANCELLED')
-                    <flux:button href="{{ route('admin.transactions.print', $rental->id) }}" target="_blank" variant="primary" size="sm" icon="printer">
+                    <flux:button href="{{ route('admin.transactions.print', $rental->id) }}" target="_blank" variant="subtle" size="sm" icon="printer">
                         Cetak Invoice / SPK
                     </flux:button>
                     @endif

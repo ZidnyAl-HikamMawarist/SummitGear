@@ -163,6 +163,7 @@
     <div class="mt-auto pt-2 pb-2 px-2 border-t border-slate-100">
         <flux:modal.trigger name="logout-modal">
             <button type="button" 
+                    @click="$dispatch('open-logout-modal')"
                     class="sidebar-link logout-link m-0 w-full text-left cursor-pointer border-0 bg-transparent"
                     title="Keluar dari sesi akun">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -14,6 +14,7 @@ class Form extends Component
     public $name = '';
     public $nik = '';
     public $phone = '';
+    public $email = '';
     public $address = '';
     public $has_consent = false;
 
@@ -25,6 +26,7 @@ class Form extends Component
             $this->name = $customer->name;
             $this->nik = $customer->nik;
             $this->phone = $customer->phone;
+            $this->email = $customer->email ?? '';
             $this->address = $customer->address ?? '';
             $this->has_consent = !is_null($customer->consent_at);
         }
@@ -41,6 +43,7 @@ class Form extends Component
                 Rule::unique('customers', 'nik')->ignore($this->customerId),
             ],
             'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
             'address' => 'nullable|string|max:500',
             'has_consent' => 'accepted', // Harus dicentang
         ];
@@ -49,6 +52,7 @@ class Form extends Component
     protected $messages = [
         'has_consent.accepted' => 'Pelanggan harus menyetujui Syarat & Ketentuan.',
         'nik.size' => 'NIK harus tepat 16 digit.',
+        'email.email' => 'Format alamat email tidak valid.',
     ];
 
     public function save()
@@ -59,6 +63,7 @@ class Form extends Component
             'name' => $this->name,
             'nik' => $this->nik,
             'phone' => $this->phone,
+            'email' => $this->email,
             'address' => $this->address,
             'consent_at' => $this->has_consent ? now() : null,
         ];

@@ -52,7 +52,7 @@ class Dashboard extends Component
         $rentedUnits = ItemUnit::where('status', 'Rented')->count();
         $cleaningUnits = ItemUnit::where('status', 'Cleaning')->count();
         $maintenanceUnits = ItemUnit::where('status', 'Maintenance')->count();
-        $brokenOrMissingUnits = ItemUnit::whereIn('status', ['Broken', 'Missing'])->count();
+        $brokenOrMissingUnits = ItemUnit::whereIn('status', ['Maintenance', 'Lost', 'Broken', 'Missing'])->count();
 
         // Persentase Kesiapan Gudang
         $availabilityRate = $totalUnits > 0 ? round(($availableUnits / $totalUnits) * 100) : 0;
@@ -61,7 +61,7 @@ class Dashboard extends Component
         // Pengambilan Hari Ini (Check-out): Pelanggan yang akan mengambil alat hari ini
         $todayPickups = Rental::with(['customer', 'details.itemUnit.item'])
             ->whereDate('start_date', $today)
-            ->whereIn('status', ['BOOKED', 'PENDING_PAYMENT'])
+            ->whereIn('status', ['BOOKED', 'DP_PAID', 'PAID'])
             ->orderBy('start_date', 'asc')
             ->get();
 

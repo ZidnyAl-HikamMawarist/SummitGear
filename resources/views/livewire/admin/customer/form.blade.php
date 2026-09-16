@@ -97,6 +97,19 @@
                                 <p class="text-[11px] text-gray-400 mt-1">Invoice digital & notifikasi pengingat kembali alat akan dikirimkan ke nomor ini.</p>
                                 @error('phone') <span class="text-xs font-bold text-red-600 mt-1 block">{{ $message }}</span> @enderror
                             </div>
+
+                            <!-- Alamat Email -->
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <flux:label for="customer_email" class="text-xs font-semibold">
+                                        Alamat Email (Opsional)
+                                    </flux:label>
+                                    <flux:badge color="sky" size="sm">E-Invoice & Reminder</flux:badge>
+                                </div>
+                                <flux:input type="email" id="customer_email" wire:model="email" placeholder="Contoh: penyewa@gmail.com" />
+                                <p class="text-[11px] text-gray-400 mt-1">Digunakan untuk pengiriman salinan tanda terima dan faktur elektronik resmi.</p>
+                                @error('email') <span class="text-xs font-bold text-red-600 mt-1 block">{{ $message }}</span> @enderror
+                            </div>
                         </div>
                     </flux:card>
 

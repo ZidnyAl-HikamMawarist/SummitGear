@@ -151,7 +151,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
-                    <span>{!! session('message') !!}</span>
+                    <span>{{ session('message') }}</span>
                 </div>
             </div>
         @endif
@@ -165,10 +165,27 @@
             </div>
         @enderror
 
+        <!-- Category Filter Pills (Quick Filter Tabs) -->
+        <div class="mb-5 overflow-x-auto pb-1.5 scrollbar-none flex items-center gap-2">
+            <button type="button" 
+                    wire:click="setCategory('all')" 
+                    class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shadow-xs {{ $selectedCategory === 'all' ? 'bg-[#0f172a] text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200' }}">
+                Semua Kategori
+            </button>
+            @foreach($this->categories as $cat)
+                <button type="button" 
+                        wire:click="setCategory('{{ $cat }}')" 
+                        class="px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shadow-xs {{ $selectedCategory === $cat ? 'bg-[#e8430a] text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200' }}">
+                    {{ $cat }}
+                </button>
+            @endforeach
+        </div>
+
         <!-- Catalog Items Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 pb-20">
             @forelse($this->availableItems as $item)
-                <div class="bg-white rounded-2xl p-3.5 border {{ $item->available_count > 0 ? 'border-gray-200 hover:border-emerald-500 hover:shadow-xl' : 'border-gray-200 opacity-60' }} transition-all flex flex-col h-full group relative overflow-hidden">
+                <div wire:key="catalog-item-{{ $item->id }}"
+                     class="bg-white rounded-2xl p-3.5 border {{ $item->available_count > 0 ? 'border-gray-200 hover:border-emerald-500 hover:shadow-xl' : 'border-gray-200 opacity-60' }} transition-all flex flex-col h-full group relative overflow-hidden">
                     
                     <!-- Availability & Cart Badge -->
                     <div class="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-1.5 z-10 pointer-events-none">
@@ -199,9 +216,9 @@
                         @endif
                     </div>
 
-                    <!-- Product Image (Clickable to Add to Cart) -->
+                    <!-- Product Image (Clean preview, clickable to add to cart) -->
                     <div @if($item->available_count > 0) wire:click="addToCart({{ $item->id }})" title="Klik gambar untuk menambah ke keranjang" role="button" tabindex="0" @endif
-                         class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all {{ $item->available_count > 0 ? 'cursor-pointer hover:opacity-95 group/img' : 'cursor-not-allowed' }}">
+                         class="w-full h-36 sm:h-40 bg-gray-50 rounded-xl mb-3 overflow-hidden border border-gray-100 flex items-center justify-center relative select-none transition-all {{ $item->available_count > 0 ? 'cursor-pointer hover:opacity-95' : 'cursor-not-allowed' }}">
                         @if($item->photo_url)
                             <img src="{{ asset('storage/' . $item->photo_url) }}" alt="{{ $item->name }}" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
                         @else
@@ -209,24 +226,17 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         @endif
-
-                        @if($item->available_count > 0)
-                            <!-- Hover Quick-Add Badge Overlay -->
-                            <div class="absolute inset-0 bg-black/15 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
-                                <span class="bg-white/95 backdrop-blur-xs text-slate-800 text-[11px] font-extrabold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 border border-slate-200 transform group-hover/img:scale-100 scale-90 transition-transform">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-[#e8430a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    <span>Klik Tambah</span>
-                                </span>
-                            </div>
-                        @endif
                     </div>
 
                     <!-- Item Details -->
                     <div class="flex-1 flex flex-col justify-between">
                         <div>
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">{{ $item->category }}</span>
+                            <button type="button" 
+                                    wire:click="setCategory('{{ $item->category }}')" 
+                                    title="Filter kategori {{ $item->category }}"
+                                    class="text-[10px] font-bold text-gray-400 hover:text-[#e8430a] uppercase tracking-wider block mb-0.5 transition-colors cursor-pointer text-left">
+                                {{ $item->category }}
+                            </button>
                             <h3 class="text-xs sm:text-sm font-bold text-navy leading-snug line-clamp-2 mb-1 group-hover:text-emerald-600 transition-colors">
                                 {{ $item->name }}
                             </h3>
@@ -245,10 +255,10 @@
                                         class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer {{ $item->cart_quantity > 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-100 hover:bg-emerald-500 hover:text-white text-slate-800' }}">
                                     
                                     <span wire:loading.remove wire:target="addToCart({{ $item->id }})" class="flex items-center gap-1.5">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                                         </svg>
-                                        <span>{{ $item->cart_quantity > 0 ? '+ Tambah Lagi' : '+ Tambah' }}</span>
+                                        <span>{{ $item->cart_quantity > 0 ? 'Tambah Lagi' : 'Tambah' }}</span>
                                     </span>
 
                                     <span wire:loading wire:target="addToCart({{ $item->id }})" class="inline-flex items-center gap-1.5">
@@ -1192,7 +1202,7 @@
                             <flux:button 
                                 type="button" 
                                 wire:click="proceedToForm" 
-                                :disabled="count($cart) === 0" 
+                                :disabled="empty($cart)" 
                                 variant="primary" 
                                 icon:trailing="arrow-right" 
                                 class="w-full h-12 text-sm font-black justify-center">
@@ -1203,7 +1213,7 @@
                                 type="button" 
                                 wire:click="submitBooking" 
                                 wire:loading.attr="disabled"
-                                :disabled="count($cart) === 0" 
+                                @disabled(empty($cart))
                                 style="background-color: #e8430a !important; color: #ffffff !important; box-shadow: 0 4px 14px -3px rgba(232, 67, 10, 0.5);"
                                 class="w-full h-12 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-98 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                                 <span wire:loading.remove wire:target="submitBooking" class="inline-flex items-center gap-2">

@@ -56,6 +56,7 @@ class Kanban extends Component
         $this->resetPage('maintenancePage');
         $this->resetPage('rentedPage');
         $this->resetPage('availablePage');
+        $this->resetPage('lostPage');
     }
 
     public function mount()
@@ -63,10 +64,44 @@ class Kanban extends Component
         $this->technicianName = Auth::user()->name ?? 'Staf Gudang';
     }
 
+    public function markLostFound($unitId)
+    {
+        $unit = ItemUnit::with('item')->findOrFail($unitId);
+        $oldStatus = $unit->status;
+
+        $unit->update([
+            'status' => 'Cleaning',
+            'condition_notes' => 'Unit ditemukan kembali oleh pelanggan, perlu cuci/inspeksi ulang.',
+        ]);
+
+        MaintenanceLog::create([
+            'item_unit_id' => $unit->id,
+            'type' => 'Pembersihan Standar',
+            'start_time' => now(),
+            'end_time' => now(),
+            'technician_name' => Auth::user()->name ?? 'Staf Gudang',
+            'notes' => 'Unit yang sempat hilang telah dikembalikan/ditemukan.',
+        ]);
+
+        AuditLogger::log('UPDATE', 'ItemUnit', $unit->id, "Unit {$unit->serial_number} yang sempat hilang berhasil dipulihkan ke status Cleaning.");
+        session()->flash('message', "Unit {$unit->serial_number} berhasil dipulihkan ke antrian cuci (Cleaning)!");
+    }
+
     public function moveStatus($unitId, $newStatus)
     {
         $unit = ItemUnit::with('item')->findOrFail($unitId);
         $oldStatus = $unit->status;
+
+        // Cegah bypass serah terima & QC pengembalian
+        if ($oldStatus === 'Rented' && $newStatus === 'Available') {
+            session()->flash('error', "Unit {$unit->serial_number} sedang dalam status disewa (Rented). Pengembalian unit harus melalui proses Serah Terima (Check-in QC).");
+            return;
+        }
+
+        if ($newStatus === 'Rented') {
+            session()->flash('error', "Status 'Rented' hanya dapat diberikan melalui alur Check-out Serah Terima.");
+            return;
+        }
 
         $unit->update([
             'status' => $newStatus,
@@ -172,6 +207,7 @@ class Kanban extends Component
         $maintenanceCount = ItemUnit::where('status', 'Maintenance')->count();
         $availableCount = ItemUnit::where('status', 'Available')->count();
         $rentedCount = ItemUnit::where('status', 'Rented')->count();
+        $lostCount = ItemUnit::where('status', 'Lost')->count();
 
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
@@ -196,6 +232,7 @@ class Kanban extends Component
         $maintenanceUnits = $buildQuery('Maintenance')->paginate($effectivePerPage, ['*'], 'maintenancePage');
         $availableUnits = $buildQuery('Available')->paginate($effectivePerPage, ['*'], 'availablePage');
         $rentedUnits = $buildQuery('Rented')->paginate($effectivePerPage, ['*'], 'rentedPage');
+        $lostUnits = $buildQuery('Lost')->paginate($effectivePerPage, ['*'], 'lostPage');
 
         $selectedUnit = $this->selectedUnitId ? ItemUnit::with('item')->find($this->selectedUnitId) : null;
 
@@ -206,10 +243,12 @@ class Kanban extends Component
             'maintenanceUnits' => $maintenanceUnits,
             'availableUnits' => $availableUnits,
             'rentedUnits' => $rentedUnits,
+            'lostUnits' => $lostUnits,
             'cleaningCount' => $cleaningCount,
             'maintenanceCount' => $maintenanceCount,
             'availableCount' => $availableCount,
             'rentedCount' => $rentedCount,
+            'lostCount' => $lostCount,
             'recentLogs' => $recentLogs,
             'selectedUnit' => $selectedUnit,
             'viewMode' => $this->viewMode,

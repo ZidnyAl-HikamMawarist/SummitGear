@@ -69,6 +69,18 @@
                     </div>
                     <span class="warehouse-tab-badge">{{ $availableCount }}</span>
                 </button>
+
+                <!-- Tab 5: Barang Hilang -->
+                <button type="button" wire:click="setTab('lost')" class="warehouse-tab-btn tab-lost {{ $activeTab === 'lost' ? 'active' : '' }}">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0"></span>
+                        <div class="flex flex-col">
+                            <span class="tab-label text-xs tracking-wider uppercase">Barang Hilang</span>
+                            <span class="text-[11px] text-gray-400 font-medium">Investigasi / Ganti Rugi</span>
+                        </div>
+                    </div>
+                    <span class="warehouse-tab-badge" style="background-color: #ffe4e6; color: #e11d48;">{{ $lostCount }}</span>
+                </button>
             </div>
 
             <!-- ========================================== -->
@@ -362,6 +374,78 @@
                                 ‹ Sebelumnya
                             </button>
                             <button type="button" wire:click="nextPage('availablePage')" @disabled(!$availableUnits->hasMorePages()) class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-30 disabled:pointer-events-none text-slate-700 font-bold text-xs flex items-center gap-1 transition shadow-2xs cursor-pointer">
+                                Berikutnya ›
+                            </button>
+                        </div>
+                    </div>
+                @endif
+
+            @elseif($activeTab === 'lost')
+                <!-- TAB: BARANG HILANG (LOST) -->
+                <div class="warehouse-card-grid">
+                    @forelse($lostUnits as $unit)
+                        <div class="warehouse-unit-card" style="border-top: 3.5px solid #E11D48;">
+                            <div class="warehouse-unit-card-top">
+                                @if($unit->item && $unit->item->photo_url)
+                                    <img src="{{ asset('storage/' . $unit->item->photo_url) }}" alt="{{ $unit->item->name }}" class="warehouse-unit-thumb opacity-75 grayscale">
+                                @else
+                                    <div class="warehouse-unit-thumb-fallback" style="background-color: #fff1f2; color: #e11d48;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                    </div>
+                                @endif
+                                <div class="flex-1 min-w-0">
+                                    <span class="text-[10px] font-bold text-rose-600 uppercase tracking-wider bg-rose-50 px-2 py-0.5 rounded-md inline-block mb-1">
+                                        Hilang saat sewa
+                                    </span>
+                                    <h4 class="font-extrabold text-sm text-navy truncate leading-snug" title="{{ $unit->item->name }}">
+                                        {{ $unit->item->name }}
+                                    </h4>
+                                    <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                                        <span class="warehouse-unit-sn-badge">SN: {{ $unit->serial_number }}</span>
+                                        <span class="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded">Nilai Ganti: Rp {{ number_format($unit->replacement_value, 0, ',', '.') }}</span>
+                                    </div>
+                                    @if($unit->condition_notes)
+                                        <div class="mt-2 text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-lg p-2 font-medium">
+                                            {{ $unit->condition_notes }}
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="warehouse-unit-actions">
+                                <button type="button" wire:click="markLostFound({{ $unit->id }})" class="warehouse-btn-primary warehouse-btn-success">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>Unit Ditemukan Kembali (Cuci)</span>
+                                </button>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-span-full warehouse-empty-state">
+                            <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h4 class="text-base font-extrabold text-navy">Tidak Ada Barang Hilang</h4>
+                            <p class="text-xs text-gray-500 mt-1 max-w-sm">Seluruh unit inventaris berada di gudang atau sedang aktif disewa.</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                @if($lostUnits->hasPages())
+                    <div class="mt-6 p-3.5 bg-white border border-gray-200 rounded-xl flex items-center justify-between text-xs text-slate-600 font-medium shadow-2xs">
+                        <span class="text-xs font-bold text-slate-700">
+                            Halaman {{ $lostUnits->currentPage() }} dari {{ $lostUnits->lastPage() }} (Total {{ $lostUnits->total() }} unit)
+                        </span>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" wire:click="previousPage('lostPage')" @disabled($lostUnits->onFirstPage()) class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-30 disabled:pointer-events-none text-slate-700 font-bold text-xs flex items-center gap-1 transition shadow-2xs cursor-pointer">
+                                ‹ Sebelumnya
+                            </button>
+                            <button type="button" wire:click="nextPage('lostPage')" @disabled(!$lostUnits->hasMorePages()) class="px-3 py-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-30 disabled:pointer-events-none text-slate-700 font-bold text-xs flex items-center gap-1 transition shadow-2xs cursor-pointer">
                                 Berikutnya ›
                             </button>
                         </div>

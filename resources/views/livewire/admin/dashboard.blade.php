@@ -39,10 +39,12 @@
                                     </flux:button>
                                 @endif
 
+                                @if(in_array(auth()->user()->role, ['admin', 'gudang']))
                                 <a href="{{ route('gudang.dashboard') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                                     <span>Terminal Gudang</span>
                                 </a>
+                                @endif
 
                                 <a href="{{ route('admin.operations.handover') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 transition">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
@@ -96,7 +98,11 @@
                         </a>
 
                         <!-- 3. Units in Maintenance / Cleaning -->
+                        @if(in_array(auth()->user()->role, ['admin', 'gudang']))
                         <a href="{{ route('admin.maintenance.kanban') }}" class="clean-stat-card group">
+                        @else
+                        <div class="clean-stat-card group">
+                        @endif
                             <div class="clean-stat-top">
                                 <span class="clean-stat-label">Unit Servis & Cuci</span>
                                 <div class="clean-stat-icon bg-purple-50 text-purple-600 border border-purple-100 group-hover:scale-105 transition-transform">
@@ -109,10 +115,18 @@
                                 <span class="clean-stat-value">{{ $maintenanceCount }}</span>
                                 <span class="clean-stat-badge clean-badge-purple">Papan Kanban</span>
                             </div>
+                        @if(in_array(auth()->user()->role, ['admin', 'gudang']))
                         </a>
+                        @else
+                        </div>
+                        @endif
 
                         <!-- 4. Monthly Revenue -->
+                        @if(auth()->user()->role === 'admin')
                         <a href="{{ route('admin.analytics.dashboard') }}" class="clean-stat-card group">
+                        @else
+                        <div class="clean-stat-card group">
+                        @endif
                             <div class="clean-stat-top">
                                 <span class="clean-stat-label">Omset Bulan Ini</span>
                                 <div class="clean-stat-icon bg-emerald-50 text-emerald-600 border border-emerald-100 group-hover:scale-105 transition-transform">
@@ -125,7 +139,11 @@
                                 <span class="clean-stat-value text-xl sm:text-2xl">Rp {{ number_format($monthlyRevenue, 0, ',', '.') }}</span>
                                 <span class="clean-stat-badge clean-badge-green">Bulan Berjalan</span>
                             </div>
+                        @if(auth()->user()->role === 'admin')
                         </a>
+                        @else
+                        </div>
+                        @endif
                     </div>
                 </section>
                 

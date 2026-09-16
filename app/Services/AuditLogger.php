@@ -24,7 +24,7 @@ class AuditLogger
                 'user_id' => Auth::id(), // null jika sistem yang melakukan
                 'action' => $action,
                 'entity' => $entity,
-                'entity_id' => $entityId,
+                'entity_id' => (string) ($entityId ?? '0'),
                 'reason' => $reason,
                 'approved_by' => $approvedById,
             ]);

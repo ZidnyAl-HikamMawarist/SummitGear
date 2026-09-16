@@ -144,7 +144,8 @@ class Dashboard extends Component
                 $rentedCount = RentalDetail::whereHas('itemUnit', function ($q) use ($item) {
                     $q->where('item_id', $item->id);
                 })->whereHas('rental', function ($q) use ($startDate, $endDate) {
-                    $q->whereBetween('created_at', [$startDate, $endDate]);
+                    $q->whereNotIn('status', ['CANCELLED', 'VOID'])
+                      ->whereBetween('created_at', [$startDate, $endDate]);
                 })->count();
 
                 $utilizationPct = $item->units_count > 0 ? min(100, round(($rentedCount / ($item->units_count * 5)) * 100, 1)) : 0;
@@ -163,13 +164,19 @@ class Dashboard extends Component
     {
         [$startDate, $endDate] = $this->getDateRange();
 
-        return InventoryItem::select('inventory_items.name', 'inventory_items.category', DB::raw('count(rental_details.id) as total_rents'), DB::raw('coalesce(sum(rental_details.price_per_day), 0) as total_earned'))
+        return InventoryItem::select(
+                'inventory_items.name', 
+                'inventory_items.category', 
+                DB::raw('count(rentals.id) as total_rents'), 
+                DB::raw('coalesce(sum(rental_details.price_per_day), 0) as total_earned')
+            )
             ->leftJoin('item_units', 'inventory_items.id', '=', 'item_units.item_id')
             ->leftJoin('rental_details', 'item_units.id', '=', 'rental_details.item_unit_id')
-            ->leftJoin('rentals', 'rental_details.rental_id', '=', 'rentals.id')
-            ->where(function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('rentals.created_at', [$startDate, $endDate])
-                  ->orWhereNull('rentals.id');
+            ->leftJoin('rentals', function ($join) use ($startDate, $endDate) {
+                $join->on('rental_details.rental_id', '=', 'rentals.id')
+                     ->whereNull('rentals.deleted_at')
+                     ->whereNotIn('rentals.status', ['CANCELLED', 'VOID'])
+                     ->whereBetween('rentals.created_at', [$startDate, $endDate]);
             })
             ->groupBy('inventory_items.id', 'inventory_items.name', 'inventory_items.category')
             ->orderByDesc('total_rents')
