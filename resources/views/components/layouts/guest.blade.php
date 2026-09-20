@@ -7,6 +7,11 @@
 
         <title>{{ $title ?? 'SummitGear — Sewa Alat Outdoor Berkualitas' }}</title>
         
+        <!-- Favicon (SummitGear Official) -->
+        <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+        <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
+        <meta name="theme-color" content="#0B1528">
+        
         <!-- Google Fonts: Plus Jakarta Sans & Poppins -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

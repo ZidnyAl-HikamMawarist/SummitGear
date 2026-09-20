@@ -20,12 +20,7 @@
     <!-- Main Sidebar -->
     <aside class="sidebar" :class="{ 'open': open }">
         <div class="sidebar-header">
-            <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-2xs" style="background: linear-gradient(135deg, #101F42 0%, #1E3A8A 100%);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-coral)">
-                    <path d="m12 3-9 17h18Z"/>
-                    <path d="m12 3 3 8-6 4"/>
-                </svg>
-            </div>
+            <x-app-logo size="sm" />
             <div class="flex items-center gap-1.5 flex-1 min-w-0">
                 <h2 class="sidebar-brand text-sm font-black text-navy leading-tight">SummitGear</h2>
                 <span class="text-[8px] font-extrabold px-1 py-0.5 rounded bg-slate-100 text-slate-500 font-mono">v2.0</span>

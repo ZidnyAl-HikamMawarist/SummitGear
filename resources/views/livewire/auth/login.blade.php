@@ -7,12 +7,7 @@
             @if(!$requires2fa)
                 <!-- Logo & Brand Header -->
                 <div class="text-center mb-6">
-                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3 shadow-md bg-coral text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="m12 3-9 17h18Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="m12 3 3 8-6 4" />
-                        </svg>
-                    </div>
+                    <x-app-logo size="lg" class="mb-3 justify-center" />
                     <h1 class="text-xl font-bold tracking-tight text-slate-900">
                         SummitGear <span class="text-coral">POS</span>
                     </h1>

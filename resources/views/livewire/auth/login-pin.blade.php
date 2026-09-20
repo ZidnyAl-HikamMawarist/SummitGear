@@ -6,11 +6,7 @@
             
             <!-- Logo & Brand Header -->
             <div class="text-center mb-6">
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3 shadow-md bg-slate-900 text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 11c0 3.532-2.1 6.643-5 8.16M12 11c0 3.532 2.1 6.643 5 8.16M12 11V3m0 8h.01M12 21a9 9 0 110-18 9 9 0 010 18z" />
-                    </svg>
-                </div>
+                <x-app-logo size="lg" class="mb-3 justify-center" />
                 <h1 class="text-xl font-bold tracking-tight text-slate-900">
                     Masuk <span class="text-coral">Kasir</span>
                 </h1>

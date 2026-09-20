@@ -85,13 +85,9 @@
 
             {{-- Logo --}}
             <a href="/" class="flex items-center gap-2.5 flex-shrink-0 group">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110" style="background: #e8430a;">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px] text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m12 3-9 17h18Z"/>
-                    </svg>
-                </div>
+                <x-app-logo size="sm" />
                 <span class="text-[17px] font-extrabold tracking-tight transition-colors" :class="scrolled ? 'text-[#0f1729]' : 'text-white'">
-                    Summit<span class="text-[#e8430a]">Gear</span>
+                    Summit<span style="color: #FF4D00;">Gear</span>
                 </span>
             </a>
 
