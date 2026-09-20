@@ -111,15 +111,34 @@ class Dashboard extends Component
             ->whereNotIn('status', ['CANCELLED', 'VOID'])
             ->count();
 
+        // Total seluruh kas masuk (Sewa Pokok + Denda)
         $totalRevenue = Payment::whereBetween('created_at', [$startDate, $endDate])
             ->sum('amount');
 
-        $penaltyRevenue = Penalty::whereBetween('created_at', [$startDate, $endDate])
-            ->where('is_settled', true)
+        // Khusus penerimaan denda yang telah diselesaikan / dibayar
+        $penaltyRevenue = Payment::whereBetween('created_at', [$startDate, $endDate])
+            ->where('type', 'penalty')
             ->sum('amount');
 
-        $totalDisputes = Penalty::whereBetween('created_at', [$startDate, $endDate])->count();
-        $disputeRate = $totalRentals > 0 ? round(($totalDisputes / $totalRentals) * 100, 1) : 0;
+        if ($penaltyRevenue == 0) {
+            $penaltyRevenue = Penalty::whereBetween('created_at', [$startDate, $endDate])
+                ->where('is_settled', true)
+                ->sum('amount');
+        }
+
+        // Rasio sengketa dihitung dari jumlah rental yang mengalami klaim kerusakan / kehilangan alat
+        $disputedRentals = Rental::whereBetween('created_at', [$startDate, $endDate])
+            ->whereNotIn('status', ['CANCELLED', 'VOID'])
+            ->where(function ($q) {
+                $q->where('status', 'DEFAULTED')
+                  ->orWhereHas('penalties', function ($pq) {
+                      $pq->where('reason', 'not like', 'Denda keterlambatan%')
+                         ->where('reason', 'not like', 'Keterlambatan%');
+                  });
+            })
+            ->count();
+
+        $disputeRate = $totalRentals > 0 ? min(100, round(($disputedRentals / $totalRentals) * 100, 1)) : 0;
 
         return [
             'totalRentals' => $totalRentals,

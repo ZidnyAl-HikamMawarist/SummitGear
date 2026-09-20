@@ -57,6 +57,29 @@ class CalculateLatePenaltyJob implements ShouldQueue
             if ($rental->status !== 'OVERDUE') {
                 $rental->update(['status' => 'OVERDUE']);
                 AuditLogger::log('SYSTEM', 'Rental', $rental->id, "Transaksi terdeteksi OVERDUE. Denda otomatis Rp {$penaltyAmount} diterapkan.");
+
+                // Cek potensi bentrok booking berikutnya (Chain-Booking Collision)
+                foreach ($rental->details as $detail) {
+                    if (!$detail->item_unit_id) continue;
+
+                    $collidingBookings = \App\Models\RentalDetail::where('item_unit_id', $detail->item_unit_id)
+                        ->where('rental_id', '!=', $rental->id)
+                        ->whereHas('rental', function ($q) {
+                            $q->whereIn('status', ['BOOKED', 'DP_PAID', 'PAID'])
+                              ->whereBetween('start_date', [Carbon::today(), Carbon::today()->addDays(2)]);
+                        })
+                        ->with(['rental.customer', 'itemUnit.item'])
+                        ->get();
+
+                    foreach ($collidingBookings as $cb) {
+                        AuditLogger::log(
+                            'WARNING', 
+                            'Rental', 
+                            $cb->rental_id, 
+                            "PERINGATAN OPERASIONAL: Unit {$detail->itemUnit->serial_number} (" . ($detail->itemUnit->item->name ?? 'Barang') . ") masih tertahan karena penyewa sebelumnya ({$rental->rental_code} - " . ($rental->customer->name ?? 'Customer') . ") terlambat (OVERDUE). Mohon segera lakukan Swap Unit di kasir."
+                        );
+                    }
+                }
             }
         }
     }

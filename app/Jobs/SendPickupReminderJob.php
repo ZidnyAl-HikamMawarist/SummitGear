@@ -46,8 +46,7 @@ class SendPickupReminderJob implements ShouldQueue
                     $pickupTime = Carbon::parse($rental->start_date)->format('H:i') . ' WIB';
                     $deadline = Carbon::parse($rental->start_date)->addHours(2)->format('H:i') . ' WIB';
 
-                    $totalPaid = $rental->payments->where('status', 'PAID')->sum('amount');
-                    $balanceDue = max(0, $rental->total_price - $totalPaid);
+                    $balanceDue = (int) $rental->balance_due;
                     $paymentLine = $balanceDue > 0
                         ? "• *Sisa Pembayaran:* Rp " . number_format($balanceDue, 0, ',', '.') . " (Bayar di Kasir saat pickup)\n\n"
                         : "• *Status Pembayaran:* LUNAS\n\n";

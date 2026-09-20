@@ -26,7 +26,8 @@ class Settlement extends Component
     public $amountPaid = 0;
 
     protected $listeners = [
-        'pinApproved' => 'executeOverridePenalty',
+        'pinApproved' => 'handlePinApproved',
+        'pin-approved' => 'handlePinApproved',
     ];
 
     public function mount($rentalId)
@@ -119,6 +120,77 @@ class Settlement extends Component
         }
     }
 
+    public $writeOffReason = 'Pelanggan menolak membayar ganti rugi/denda';
+
+    public function requestWriteOff()
+    {
+        $this->dispatch('openPinApproval', action: 'writeOffDispute', payload: [
+            'rental_id' => $this->rental->id,
+            'obligation' => $this->totalObligation,
+        ]);
+    }
+
+    public function executeWriteOff($data)
+    {
+        if (($data['action'] ?? null) === 'writeOffDispute' && ($data['payload']['rental_id'] ?? null) == $this->rentalId) {
+            $token = $data['token'] ?? null;
+            $stored = session()->get('pin_approval_token_writeOffDispute');
+            session()->forget('pin_approval_token_writeOffDispute');
+
+            if (!$stored || !isset($stored['token']) || !hash_equals($stored['token'], (string)$token) || now()->timestamp > ($stored['expires_at'] ?? 0)) {
+                session()->flash('error', 'Otorisasi PIN Admin tidak valid, telah kedaluwarsa, atau ditolak.');
+                return;
+            }
+
+            DB::beginTransaction();
+            try {
+                // Sita deposit yang ditahan
+                foreach ($this->rental->deposits->where('status', 'HELD') as $deposit) {
+                    $deposit->update(['status' => 'FORFEITED']);
+                }
+
+                // Update rental status ke DEFAULTED
+                $this->rental->update([
+                    'status' => 'DEFAULTED',
+                    'settlement_notes' => "Piutang macet / ditutup sepihak oleh Admin (ID: {$data['approver_id']}). Alasan: {$this->writeOffReason}. Kewajiban tak tertagih: Rp " . number_format($this->netBalance, 0, ',', '.'),
+                ]);
+
+                // Blacklist customer
+                if ($this->rental->customer) {
+                    $this->rental->customer->update([
+                        'is_blacklisted' => true,
+                        'blacklist_notes' => "Di-blacklist dari TRX {$this->rental->rental_code}: Menolak membayar kewajiban sebesar Rp " . number_format($this->netBalance, 0, ',', '.') . " ({$this->writeOffReason})",
+                    ]);
+                }
+
+                AuditLogger::log('UPDATE', 'Rental', $this->rental->id, "Menutup sengketa sebagai Piutang Macet (DEFAULTED). Pelanggan di-blacklist. Disetujui Admin: {$data['approver_id']}", $data['approver_id']);
+
+                DB::commit();
+                session()->flash('message', 'Sengketa berhasil ditutup sebagai Piutang Macet (DEFAULTED). Pelanggan otomatis dimasukkan ke Daftar Hitam (Blacklist).');
+                return redirect()->route('admin.operations.handover');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                session()->flash('error', 'Gagal memproses penutupan sengketa: ' . $e->getMessage());
+            }
+        }
+    }
+
+    public function handlePinApproved($action, $data, $approvedBy, $token = null)
+    {
+        $payload = [
+            'action' => $action,
+            'payload' => $data,
+            'approver_id' => $approvedBy,
+            'token' => $token,
+        ];
+
+        if ($action === 'overridePenalty') {
+            $this->executeOverridePenalty($payload);
+        } elseif ($action === 'writeOffDispute') {
+            $this->executeWriteOff($payload);
+        }
+    }
+
     public function processSettlement()
     {
         DB::beginTransaction();
@@ -143,6 +215,17 @@ class Settlement extends Component
                 // Tandai semua denda lunas
                 foreach ($this->pendingPenalties as $penalty) {
                     $penalty->update(['is_settled' => true]);
+                }
+
+                // Catat pembayaran denda via pemotongan deposit
+                if ($totalPenalty > 0) {
+                    Payment::create([
+                        'rental_id' => $this->rental->id,
+                        'type' => 'penalty',
+                        'method' => 'DEPOSIT_DEDUCTION',
+                        'amount' => $totalPenalty,
+                        'paid_at' => now(),
+                    ]);
                 }
 
                 // Jika ada sisa sewa pokok, catat pelunasan via pemotongan deposit

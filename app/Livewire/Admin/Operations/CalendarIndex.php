@@ -123,6 +123,12 @@ class CalendarIndex extends Component
                     if ($d->item_unit_id !== $unit->id) return false;
                     $rStart = Carbon::parse($d->rental->start_date)->startOfDay();
                     $rEnd = Carbon::parse($d->rental->end_date)->endOfDay();
+                    
+                    // Jika rental sudah selesai dan alat sudah kembali, jangan blokir tanggal hari ini / masa depan
+                    if ($d->rental->status === 'COMPLETED' && $date->greaterThanOrEqualTo(Carbon::today())) {
+                        return false;
+                    }
+                    
                     return $date->between($rStart, $rEnd);
                 });
 

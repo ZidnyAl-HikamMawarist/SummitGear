@@ -25,9 +25,35 @@ class IncomingBooking extends Component
     public $cancelDeadline = '';
     public $cancelType = 'normal'; // 'expired' or 'normal'
 
+    // Fitur Pembatalan Booking Berbayar (Skenario 7: DP Hangus vs Refund)
+    public $cancelPaidAmount = 0;
+    public $cancelAction = 'NONE'; // 'NONE', 'FORFEIT', 'REFUND'
+    public $refundAmount = 0;
+    public $supervisorPin = '';
+
+    public function extendPickupTolerance($rentalId, $hours = 2)
+    {
+        $rental = Rental::findOrFail($rentalId);
+        $base = $rental->pickup_extended_until ? Carbon::parse($rental->pickup_extended_until) : Carbon::parse($rental->start_date)->addHours(2);
+        $newDeadline = $base->copy()->addHours($hours);
+
+        $rental->update([
+            'pickup_extended_until' => $newDeadline,
+        ]);
+
+        AuditLogger::log(
+            'UPDATE',
+            'Rental',
+            $rental->id,
+            "Kasir memberikan perpanjangan toleransi waktu pickup sebesar {$hours} jam (hingga " . $newDeadline->format('d M Y, H:i') . " WIB)."
+        );
+
+        session()->flash('message', "Toleransi waktu pickup untuk booking {$rental->rental_code} diperpanjang hingga " . $newDeadline->format('d M Y, H:i') . " WIB.");
+    }
+
     public function confirmCancelBooking($rentalId, $type = 'normal')
     {
-        $rental = Rental::with('details.itemUnit', 'customer')->findOrFail($rentalId);
+        $rental = Rental::with(['details.itemUnit', 'customer', 'payments'])->findOrFail($rentalId);
         $this->cancelRentalId = $rental->id;
         $this->cancelBookingCode = $rental->rental_code;
         $this->cancelCustomerName = $rental->customer->name ?? '-';
@@ -35,8 +61,13 @@ class IncomingBooking extends Component
         $this->cancelUnitCount = $rental->details->whereNotNull('item_unit_id')->count();
         $this->cancelType = $type;
 
+        $this->cancelPaidAmount = (int) $rental->payments->sum('amount');
+        $this->cancelAction = $this->cancelPaidAmount > 0 ? 'FORFEIT' : 'NONE';
+        $this->refundAmount = $this->cancelPaidAmount;
+        $this->supervisorPin = '';
+
         $pickupTime = Carbon::parse($rental->start_date);
-        $deadline = $pickupTime->copy()->addHours(2);
+        $deadline = $rental->pickup_extended_until ? Carbon::parse($rental->pickup_extended_until) : $pickupTime->copy()->addHours(2);
         $this->cancelDeadline = $deadline->locale('id')->isoFormat('DD MMM YYYY, HH:mm') . ' WIB';
         $this->cancelIsExpired = Carbon::now()->greaterThan($deadline);
 
@@ -52,20 +83,87 @@ class IncomingBooking extends Component
         $this->cancelCustomerPhone = '';
         $this->cancelUnitCount = 0;
         $this->cancelType = 'normal';
+        $this->cancelPaidAmount = 0;
+        $this->cancelAction = 'NONE';
+        $this->refundAmount = 0;
+        $this->supervisorPin = '';
     }
 
     public function executeCancellation()
     {
         if (!$this->cancelRentalId) return;
 
-        $id = $this->cancelRentalId;
-        $type = $this->cancelType;
-        $this->closeCancelModal();
+        if ($this->cancelPaidAmount > 0 && $this->cancelAction === 'REFUND') {
+            $this->validate([
+                'refundAmount' => 'required|numeric|min:1|max:' . $this->cancelPaidAmount,
+                'supervisorPin' => 'required',
+            ], [
+                'refundAmount.min' => 'Nominal refund minimal Rp 1',
+                'refundAmount.max' => 'Nominal refund tidak boleh melebihi total yang dibayar (Rp ' . number_format($this->cancelPaidAmount, 0, ',', '.') . ')',
+                'supervisorPin.required' => 'PIN Supervisor wajib diisi untuk otorisasi refund kas.',
+            ]);
 
-        if ($type === 'expired') {
-            $this->validateExpiredAndCancel($id);
-        } else {
-            $this->cancelBooking($id);
+            $validPin = \App\Models\Setting::where('key', 'admin_supervisor_pin')->value('value') ?? '1234';
+            if ($this->supervisorPin !== $validPin) {
+                $this->addError('supervisorPin', 'PIN Supervisor tidak valid.');
+                return;
+            }
+        }
+
+        $id = $this->cancelRentalId;
+        $this->showCancelModal = false;
+
+        DB::beginTransaction();
+        try {
+            $rental = Rental::with('details.itemUnit', 'customer')->findOrFail($id);
+
+            $returnedCount = 0;
+            foreach ($rental->details as $detail) {
+                if ($detail->itemUnit) {
+                    $detail->itemUnit->update(['status' => 'Available']);
+                    $returnedCount++;
+                }
+            }
+
+            $settlementNote = '';
+            if ($this->cancelPaidAmount > 0) {
+                if ($this->cancelAction === 'REFUND') {
+                    \App\Models\Payment::create([
+                        'rental_id' => $rental->id,
+                        'type' => 'penalty',
+                        'method' => 'TRANSFER',
+                        'amount' => -$this->refundAmount,
+                        'paid_at' => now(),
+                    ]);
+                    $settlementNote = "Dibatalkan dengan REFUND Rp " . number_format($this->refundAmount, 0, ',', '.') . " via Transfer Bank disetujui Supervisor.";
+                } else {
+                    $settlementNote = "Dibatalkan dengan DP HANGUS (Rp " . number_format($this->cancelPaidAmount, 0, ',', '.') . ") sesuai SOP pembatalan.";
+                }
+            }
+
+            $rental->update([
+                'status' => 'CANCELLED',
+                'settlement_notes' => $settlementNote,
+            ]);
+
+            AuditLogger::log(
+                'CANCEL',
+                'Rental',
+                $rental->id,
+                "Kasir membatalkan booking online {$rental->rental_code} ({$rental->customer->name}). {$settlementNote} Sebanyak {$returnedCount} unit kembali ke gudang."
+            );
+
+            try {
+                WhatsAppService::sendBookingCancellation($rental, $settlementNote ?: "Permintaan pembatalan kasir/pelanggan.");
+            } catch (\Throwable $e) {}
+
+            DB::commit();
+
+            $this->closeCancelModal();
+            session()->flash('message', "Booking {$rental->rental_code} berhasil dibatalkan. {$returnedCount} unit dikembalikan ke gudang.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Gagal membatalkan booking: ' . $e->getMessage());
         }
     }
 
@@ -101,8 +199,11 @@ class IncomingBooking extends Component
         $now = Carbon::now();
         return $bookings->map(function ($booking) use ($now) {
             $pickupTime = Carbon::parse($booking->start_date);
-            $deadline = $pickupTime->copy()->addHours(2); // Toleransi 2 jam
+            $deadline = $booking->pickup_extended_until 
+                ? Carbon::parse($booking->pickup_extended_until) 
+                : $pickupTime->copy()->addHours(2); // Default toleransi 2 jam
             
+            $booking->is_tolerance_extended = !empty($booking->pickup_extended_until);
             $booking->pickup_date_formatted = $pickupTime->locale('id')->isoFormat('DD MMM YYYY');
             $booking->pickup_clock_formatted = $pickupTime->format('H:i') . ' WIB';
             $booking->pickup_time_formatted = $pickupTime->locale('id')->isoFormat('DD MMM YYYY, HH:mm') . ' WIB';

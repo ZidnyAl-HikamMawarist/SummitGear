@@ -144,6 +144,8 @@ class UnitIndex extends Component
     public $unitToDeleteCondition = '';
     public $unitToDeleteValue = 0;
     public $unitToDeleteIsRented = false;
+    public $unitToDeleteHasActiveRentals = false;
+    public $unitToDeleteBlockerReason = '';
 
     public function confirmDeleteUnit($id)
     {
@@ -154,6 +156,18 @@ class UnitIndex extends Component
         $this->unitToDeleteCondition = $unit->condition_notes ?? '-';
         $this->unitToDeleteValue = $unit->replacement_value;
         $this->unitToDeleteIsRented = ($unit->status === 'Rented');
+
+        $activeRentals = \App\Models\RentalDetail::where('item_unit_id', $id)
+            ->whereHas('rental', function ($q) {
+                $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID']);
+            })
+            ->count();
+
+        $this->unitToDeleteHasActiveRentals = ($activeRentals > 0);
+        $this->unitToDeleteBlockerReason = $activeRentals > 0
+            ? "Unit ini terikat pada {$activeRentals} transaksi sewa aktif/terjadwal dan tidak dapat dihapus."
+            : '';
+
         $this->showDeleteModal = true;
     }
 
@@ -166,11 +180,13 @@ class UnitIndex extends Component
         $this->unitToDeleteCondition = '';
         $this->unitToDeleteValue = 0;
         $this->unitToDeleteIsRented = false;
+        $this->unitToDeleteHasActiveRentals = false;
+        $this->unitToDeleteBlockerReason = '';
     }
 
     public function executeDeleteUnit()
     {
-        if (!$this->unitToDeleteId || $this->unitToDeleteIsRented) {
+        if (!$this->unitToDeleteId || $this->unitToDeleteIsRented || $this->unitToDeleteHasActiveRentals) {
             return;
         }
 
@@ -182,8 +198,15 @@ class UnitIndex extends Component
     public function deleteUnit($id)
     {
         $unit = ItemUnit::findOrFail($id);
-        if ($unit->status === 'Rented') {
-            session()->flash('error', 'Unit sedang disewa, tidak dapat dihapus.');
+        $hasActiveRentals = \App\Models\RentalDetail::where('item_unit_id', $id)
+            ->whereHas('rental', function ($q) {
+                $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID']);
+            })
+            ->exists();
+
+        if ($unit->status === 'Rented' || $hasActiveRentals) {
+            $this->addError('delete_unit', 'Unit sedang disewa atau terikat jadwal sewa mendatang, tidak dapat dihapus.');
+            session()->flash('error', 'Unit sedang disewa atau terikat jadwal sewa mendatang, tidak dapat dihapus.');
             return;
         }
 

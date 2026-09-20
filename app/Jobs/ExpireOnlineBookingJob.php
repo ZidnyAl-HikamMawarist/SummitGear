@@ -29,12 +29,24 @@ class ExpireOnlineBookingJob implements ShouldQueue
                           ->whereIn('status', ['PENDING_PAYMENT', 'BOOKED'])
                           ->where(function ($q) use ($deadline, $now) {
                               $q->where('created_at', '<=', $deadline)
-                                ->orWhere('start_date', '<=', $now->copy()->subHours(2));
+                                ->orWhere(function ($sq) use ($now) {
+                                    $sq->where('start_date', '<=', $now->copy()->subHours(2))
+                                       ->where(function ($ssq) use ($now) {
+                                           $ssq->whereNull('pickup_extended_until')
+                                               ->orWhere('pickup_extended_until', '<=', $now);
+                                       });
+                                });
                           });
                 })->orWhere(function ($query) use ($now, $expireHours) {
                     $query->where('source', 'online')
                           ->whereIn('status', ['DP_PAID', 'PAID'])
-                          ->where('start_date', '<=', $now->copy()->subHours($expireHours));
+                          ->where(function ($sq) use ($now, $expireHours) {
+                              $sq->where('start_date', '<=', $now->copy()->subHours($expireHours))
+                                 ->where(function ($ssq) use ($now) {
+                                     $ssq->whereNull('pickup_extended_until')
+                                         ->orWhere('pickup_extended_until', '<=', $now);
+                                 });
+                          });
                 });
             })
             ->with('details.itemUnit', 'customer')

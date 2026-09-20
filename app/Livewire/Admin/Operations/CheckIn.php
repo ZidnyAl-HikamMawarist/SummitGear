@@ -38,10 +38,14 @@ class CheckIn extends Component
             $checkoutInspection = $detail->inspections->where('stage', 'CHECKOUT')->first();
             $this->initialConditions[$detail->id] = $checkoutInspection ? $checkoutInspection->condition_category : 'Baik';
 
+            $replacementVal = (int) ($detail->itemUnit->replacement_value ?? 0);
+            $defaultDamageCost = (int) round($replacementVal * 0.3);
+
             $this->checkinData[$detail->id] = [
                 'condition' => 'Baik',
                 'return_status' => 'RETURNED', // Options: RETURNED, DAMAGED, LOST
                 'notes' => '',
+                'damage_cost' => $defaultDamageCost,
             ];
         }
     }
@@ -49,9 +53,14 @@ class CheckIn extends Component
     public function updated($propertyName, $value)
     {
         if (preg_match('/checkinData\.(\d+)\.condition/', $propertyName, $matches)) {
-            $detailId = $matches[1];
+            $detailId = (int)$matches[1];
             if ($value === 'Rusak') {
                 $this->checkinData[$detailId]['return_status'] = 'DAMAGED';
+                $detail = $this->rental->details->firstWhere('id', $detailId);
+                $replacementVal = (int) ($detail?->itemUnit?->replacement_value ?? 0);
+                if (empty($this->checkinData[$detailId]['damage_cost']) || (int)$this->checkinData[$detailId]['damage_cost'] === 0) {
+                    $this->checkinData[$detailId]['damage_cost'] = (int) round($replacementVal * 0.3);
+                }
             } elseif ($value === 'Hilang') {
                 $this->checkinData[$detailId]['return_status'] = 'LOST';
             } elseif (in_array($value, ['Baik', 'Cukup', 'Perhatian'])) {
@@ -60,6 +69,16 @@ class CheckIn extends Component
                 }
             }
         }
+    }
+
+    public function markAllAsGood()
+    {
+        foreach ($this->rental->details as $detail) {
+            $this->checkinData[$detail->id]['condition'] = 'Baik';
+            $this->checkinData[$detail->id]['return_status'] = 'RETURNED';
+            $this->checkinData[$detail->id]['notes'] = 'Kondisi lengkap dan baik';
+        }
+        session()->flash('info', 'Semua unit berhasil ditandai dalam kondisi Baik.');
     }
 
     public function submitCheckIn()
@@ -114,14 +133,19 @@ class CheckIn extends Component
                         ]);
                     } elseif ($returnStatus === 'DAMAGED' || $cond === 'Rusak') {
                         $detail->itemUnit->update(['status' => 'Maintenance', 'condition_notes' => 'Rusak saat pengembalian: ' . $notes]);
-                        // Estimasi denda kerusakan (misal 30% dari replacement value jika rusak)
-                        $damageCost = (int) ($detail->itemUnit->replacement_value * 0.3);
+                        // Estimasi biaya perbaikan / denda fleksibel dari staf QC (default fallback 30%)
+                        $customDamage = isset($data['damage_cost']) && is_numeric($data['damage_cost']) ? (int)$data['damage_cost'] : null;
+                        $damageCost = ($customDamage !== null && $customDamage > 0) 
+                            ? $customDamage 
+                            : (int) round(($detail->itemUnit->replacement_value ?? 0) * 0.3);
+
                         $totalDamageOrLostPenalty += $damageCost;
                         $hasIssues = true;
 
+                        $reasonNote = !empty($notes) ? " ({$notes})" : '';
                         Penalty::create([
                             'rental_id' => $this->rental->id,
-                            'reason' => "Denda kerusakan alat: {$detail->itemUnit->item->name} ({$notes})",
+                            'reason' => "Denda kerusakan alat: {$detail->itemUnit->item->name}{$reasonNote}",
                             'amount' => $damageCost,
                             'is_settled' => false,
                         ]);
