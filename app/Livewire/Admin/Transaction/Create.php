@@ -30,12 +30,30 @@ class Create extends Component
     public $searchQuery = '';
     public $selectedCategory = 'all';
     
-    // Step 4: Pembayaran
+    // Step 4: Pembayaran & Jaminan
     public $payment_method = 'CASH'; // CASH, TRANSFER, QRIS
     public $payment_amount = '';
     public $total_price = 0;
     public $discount = 0;
     public $is_ktp_valid = false;
+    public $security_deposit_amount = 0;
+    public $is_customer_blacklisted = false;
+    public $blacklist_reason = '';
+
+    public function updatedCustomerId($value)
+    {
+        $this->is_customer_blacklisted = false;
+        $this->blacklist_reason = '';
+
+        if ($value) {
+            $customer = Customer::find($value);
+            if ($customer && $customer->is_blacklisted) {
+                $this->is_customer_blacklisted = true;
+                $this->blacklist_reason = $customer->blacklist_notes ?: 'Tercatat memiliki riwayat piutang macet / pelanggaran berat.';
+                $this->addError('customer_id', 'PERINGATAN: Pelanggan ini masuk dalam daftar BLACKLIST (' . $this->blacklist_reason . ')! Transaksi tidak dapat diproses.');
+            }
+        }
+    }
 
     public function updatedPaymentAmount($value)
     {
@@ -416,6 +434,12 @@ class Create extends Component
             return;
         }
 
+        $customer = Customer::find($this->customer_id);
+        if ($customer && $customer->is_blacklisted) {
+            $this->addError('customer_id', 'Transaksi ditolak: Pelanggan ini terdaftar dalam BLACKLIST (' . ($customer->blacklist_notes ?: 'Piutang macet / pelanggaran') . ').');
+            return;
+        }
+
         DB::beginTransaction();
         try {
             $start = Carbon::parse($this->start_date)->startOfDay();
@@ -510,6 +534,18 @@ class Create extends Component
                     'type' => 'DOC',
                     'amount' => 0,
                     'doc_type' => 'KTP',
+                    'status' => 'HELD',
+                    'retention_deadline' => Carbon::parse($this->end_date)->addDays(30),
+                ]);
+            }
+
+            // Catat uang jaminan tunai (cash security deposit) jika ada
+            if ((float) $this->security_deposit_amount > 0) {
+                Deposit::create([
+                    'rental_id' => $rental->id,
+                    'type' => 'CASH',
+                    'amount' => (float) $this->security_deposit_amount,
+                    'doc_type' => null,
                     'status' => 'HELD',
                     'retention_deadline' => Carbon::parse($this->end_date)->addDays(30),
                 ]);

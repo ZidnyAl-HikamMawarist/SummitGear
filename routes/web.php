@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Livewire\Auth\Login;
 use App\Livewire\Admin\Dashboard;
 
@@ -23,7 +24,7 @@ Route::middleware(['auth', 'kasir.timeout'])->group(function () {
         if ($user) {
             \App\Services\AuditLogger::log('LOGOUT', 'User', $user->id, "Mengakhiri shift (Logout)");
         }
-        auth()->logout();
+        Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
         return redirect()->route('login');

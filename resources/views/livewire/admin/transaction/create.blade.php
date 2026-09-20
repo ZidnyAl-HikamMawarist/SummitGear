@@ -1,18 +1,30 @@
-<div class="cashier-workspace w-screen h-screen flex flex-col overflow-hidden" style="background: #f4f4f5; position: fixed; inset: 0;">
+<div class="cashier-workspace w-screen h-screen flex flex-col overflow-hidden" 
+     style="background: #f4f4f5; position: fixed; inset: 0;"
+     x-data="{
+         init() {
+             window.addEventListener('keydown', (e) => {
+                 if (e.key === 'F2') {
+                     e.preventDefault();
+                     const el = document.getElementById('pos-search-input');
+                     if (el) { el.focus(); el.select(); }
+                 }
+                 if (e.key === 'F4') {
+                     e.preventDefault();
+                     const el = document.getElementById('pos-payment-amount');
+                     if (el) { el.focus(); el.select(); }
+                 }
+             });
+         }
+     }">
     <!-- POS Dedicated Topbar (Full width, no sidebar) -->
     <header class="bg-white px-5 py-3 flex items-center justify-between border-b border-gray-200 shrink-0 shadow-sm z-30">
         <!-- Brand & Info -->
         <div class="flex items-center gap-4">
             <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #101F42 0%, #1E3A8A 100%);">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #FF4500">
-                        <path d="m12 3-9 17h18Z"/>
-                        <path d="m12 3 3 8-6 4"/>
-                    </svg>
-                </div>
+                <x-app-logo size="md" />
                 <div>
-                    <h1 class="text-base font-extrabold text-[#101F42] leading-none tracking-tight">SummitGear <span class="text-[#FF4500]">POS</span></h1>
-                    <p class="text-[11px] font-semibold text-gray-400 mt-0.5">Terminal Kasir & Transaksi Sewa</p>
+                    <h1 class="text-base font-extrabold text-navy leading-none tracking-tight">SummitGear <span class="text-coral">POS</span></h1>
+                    <p class="text-[11px] font-semibold text-slate-500 mt-0.5">Terminal Kasir & Transaksi Sewa</p>
                 </div>
             </div>
 
@@ -92,9 +104,9 @@
                         <p class="cashier-toolbar-heading">Pilih peralatan sewa</p>
                     </div>
                     <div class="flex-1 relative max-w-xs cashier-search">
-                        <input type="text" wire:model.live.debounce.300ms="searchQuery"
-                               placeholder="Cari alat atau SKU..."
-                               class="w-full pl-10 pr-4 rounded-xl text-sm font-medium outline-none transition-all" 
+                        <input id="pos-search-input" type="text" wire:model.live.debounce.300ms="searchQuery"
+                               placeholder="Cari alat atau SKU (F2)..."
+                               class="w-full pl-10 pr-10 rounded-xl text-sm font-medium outline-none transition-all" 
                                style="height: 42px; border: 1px solid #E2E8F0; background: #F8FAFC;" 
                                onfocus="this.style.borderColor='#101F42'; this.style.background='#FFFFFF'" 
                                onblur="this.style.borderColor='#E2E8F0'; this.style.background='#F8FAFC'">
@@ -102,6 +114,9 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
+                        </div>
+                        <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+                            <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-white border border-slate-200 rounded">F2</kbd>
                         </div>
                     </div>
 
@@ -263,6 +278,17 @@
                                 </a>
                             </div>
                             @error('customer_id') <span class="text-[11px] font-bold text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                            @if($is_customer_blacklisted)
+                                <div class="mt-2 p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-[11.5px] font-bold flex items-start gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <div>
+                                        <span class="block text-red-900 font-extrabold">PELANGGAN TERDAFTAR BLACKLIST</span>
+                                        <span class="font-normal text-red-700">{{ $blacklist_reason }}</span>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
 
                         <!-- Jadwal Sewa -->
@@ -462,24 +488,54 @@
                             </div>
                             <div>
                                 <div class="flex items-center justify-between mb-1.5">
-                                    <label for="pos-payment-amount" class="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">Dibayar</label>
+                                    <div class="flex items-center gap-1.5">
+                                        <label for="pos-payment-amount" class="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">Dibayar</label>
+                                        <kbd class="hidden sm:inline-block px-1 py-0.2 text-[9px] font-mono font-bold text-slate-400 bg-slate-100 rounded">F4</kbd>
+                                    </div>
                                     @if($total_price > 0)
                                         <button type="button"
                                                 x-data
                                                 x-on:click="$wire.set('payment_amount', {{ $total_price }})"
-                                                class="text-[11px] font-bold text-[#FF4500] hover:underline cursor-pointer">
+                                                class="text-[11px] font-bold text-coral hover:underline cursor-pointer">
                                             Uang Pas
                                         </button>
                                     @endif
                                 </div>
-                                <div class="flex items-stretch h-11 border border-slate-200 rounded-xl bg-white shadow-xs overflow-hidden transition-all focus-within:border-[#101F42] focus-within:ring-2 focus-within:ring-[#101F42]/10"
+                                <div class="flex items-stretch h-11 border border-slate-200 rounded-xl bg-white shadow-xs overflow-hidden transition-all focus-within:border-navy focus-within:ring-2 focus-within:ring-navy/10"
                                      x-data>
                                     <span class="flex items-center px-3 text-[12.5px] font-black text-slate-400 bg-slate-50 border-r border-slate-100 select-none flex-shrink-0">Rp</span>
                                     <input id="pos-payment-amount" type="number" wire:model.live.debounce.300ms="payment_amount" min="0" placeholder="0"
                                            x-on:focus="if ($el.value === '0') { $el.value = ''; $wire.set('payment_amount', ''); }"
                                            x-on:input="if ($el.value.length > 1 && $el.value.startsWith('0')) { $el.value = $el.value.replace(/^0+/, ''); }"
-                                           class="flex-1 min-w-0 h-full text-[14px] font-extrabold text-[#101F42] outline-none tabular-nums bg-transparent px-3 border-0 focus:ring-0">
+                                           class="flex-1 min-w-0 h-full text-[14px] font-extrabold text-navy outline-none tabular-nums bg-transparent px-3 border-0 focus:ring-0">
                                 </div>
+                                @if($total_price > 0)
+                                    <div class="flex items-center gap-1.5 mt-2 flex-wrap" x-data>
+                                        <button type="button"
+                                                x-on:click="$wire.set('payment_amount', {{ $total_price }})"
+                                                class="px-2 py-1 text-[10.5px] font-extrabold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer active:scale-95">
+                                            Pas
+                                        </button>
+                                        @php
+                                            $round50 = ceil($total_price / 50000) * 50000;
+                                            $round100 = ceil($total_price / 100000) * 100000;
+                                        @endphp
+                                        @if($round50 > $total_price)
+                                        <button type="button"
+                                                x-on:click="$wire.set('payment_amount', {{ $round50 }})"
+                                                class="px-2 py-1 text-[10.5px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer active:scale-95">
+                                            Rp {{ number_format($round50, 0, ',', '.') }}
+                                        </button>
+                                        @endif
+                                        @if($round100 > $total_price && $round100 !== $round50)
+                                        <button type="button"
+                                                x-on:click="$wire.set('payment_amount', {{ $round100 }})"
+                                                class="px-2 py-1 text-[10.5px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer active:scale-95">
+                                            Rp {{ number_format($round100, 0, ',', '.') }}
+                                        </button>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
                             @error('payment_amount') <div class="col-span-2 text-red-500 text-[11px] font-bold">{{ $message }}</div> @enderror
                         </div>
@@ -504,6 +560,20 @@
                                 </div>
                             @endif
                         @endif
+
+                        <!-- Cash Security Deposit (Jaminan Tunai) -->
+                        <div class="pt-3 border-t border-slate-100">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label for="pos-security-deposit" class="text-[11.5px] font-bold uppercase tracking-wider text-slate-500">Uang Jaminan Tunai (Deposit)</label>
+                                <span class="text-[10px] text-slate-400 font-semibold bg-slate-100 px-2 py-0.5 rounded">Opsional</span>
+                            </div>
+                            <div class="flex items-stretch h-10 border border-slate-200 rounded-xl bg-white shadow-xs overflow-hidden transition-all focus-within:border-[#101F42] focus-within:ring-2 focus-within:ring-[#101F42]/10">
+                                <span class="flex items-center px-3 text-[12px] font-black text-slate-400 bg-slate-50 border-r border-slate-100 select-none flex-shrink-0">Rp</span>
+                                <input id="pos-security-deposit" type="number" wire:model.live="security_deposit_amount" min="0" step="50000" placeholder="0"
+                                       class="flex-1 min-w-0 h-full text-[13px] font-bold text-[#101F42] outline-none tabular-nums bg-transparent px-3 border-0 focus:ring-0">
+                            </div>
+                            <p class="text-[10.5px] text-slate-400 mt-1">Uang jaminan tambahan untuk alat bernilai tinggi, dikembalikan utuh saat Check-In.</p>
+                        </div>
                     </div>
 
                     <!-- E. KTP Verification Interactive Card -->

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class KasirTimeoutMiddleware
@@ -15,12 +16,12 @@ class KasirTimeoutMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check() && auth()->user()->role === 'kasir') {
+        if (Auth::check() && Auth::user()->role === 'kasir') {
             $lastActivity = session('last_activity');
             $timeout = 20 * 60; // 20 minutes in seconds
 
             if ($lastActivity && (time() - $lastActivity > $timeout)) {
-                auth()->logout();
+                Auth::logout();
                 session()->invalidate();
                 session()->regenerateToken();
                 return redirect('/login')->withErrors(['email' => 'Sesi Anda telah berakhir karena tidak ada aktivitas selama 20 menit. Silakan login kembali.']);
