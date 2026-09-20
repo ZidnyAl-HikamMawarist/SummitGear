@@ -15,8 +15,13 @@ class Rental extends Model
     const STATUS_PAID = 'PAID';
     const STATUS_BOOKED = 'BOOKED';
     const STATUS_ACTIVE = 'ACTIVE';
+    const STATUS_RENTED_OUT = 'RENTED_OUT';
+    const STATUS_OVERDUE = 'OVERDUE';
+    const STATUS_PENDING_SETTLEMENT = 'PENDING_SETTLEMENT';
     const STATUS_COMPLETED = 'COMPLETED';
     const STATUS_CANCELLED = 'CANCELLED';
+    const STATUS_VOID = 'VOID';
+    const STATUS_DEFAULTED = 'DEFAULTED';
 
     protected $fillable = [
         'rental_code',
@@ -32,7 +37,9 @@ class Rental extends Model
         'payment_type',
         'source',
         'expires_at',
+        'pickup_extended_until',
         'pickup_reminder_sent_at',
+        'settlement_notes',
     ];
 
     protected $casts = [
@@ -40,6 +47,7 @@ class Rental extends Model
         'end_date' => 'datetime',
         'scheduled_return_time' => 'datetime',
         'expires_at' => 'datetime',
+        'pickup_extended_until' => 'datetime',
         'pickup_reminder_sent_at' => 'datetime',
     ];
 
