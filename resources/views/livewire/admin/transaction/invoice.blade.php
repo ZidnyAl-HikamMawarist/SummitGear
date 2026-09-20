@@ -44,6 +44,9 @@
                     <flux:button href="{{ route('admin.operations.checkin', $rental->id) }}" variant="primary" size="sm" icon="arrow-down-tray">
                         Pengembalian Barang (Check-In)
                     </flux:button>
+                    <flux:button type="button" wire:click="openExtendModal" variant="subtle" size="sm" icon="calendar">
+                        Perpanjang Masa Sewa
+                    </flux:button>
                     @elseif($rental->status === 'PENDING_SETTLEMENT')
                     <flux:button href="{{ route('admin.settlements.show', $rental->id) }}" variant="primary" size="sm" icon="calculator">
                         Selesaikan Tagihan (Settlement)
@@ -229,6 +232,96 @@
                     Batalkan Transaksi Ini (VOID)
                 </flux:button>
                 <p class="text-xs text-gray-400 mt-1">Memerlukan otorisasi PIN Admin.</p>
+            </div>
+            @endif
+
+            @if($showExtendModal)
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+                <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <h3 class="font-bold text-base text-navy">Perpanjang Masa Sewa (Extension)</h3>
+                        </div>
+                        <button type="button" wire:click="closeExtendModal" class="text-gray-400 hover:text-gray-600">✕</button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="p-3 bg-slate-50 rounded-xl text-xs space-y-1">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Tanggal Kembali Saat Ini:</span>
+                                <strong class="text-navy">{{ \Carbon\Carbon::parse($rental->end_date)->format('d M Y') }}</strong>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Total Sewa Saat Ini:</span>
+                                <strong class="text-emerald-700">Rp {{ number_format($rental->total_price, 0, ',', '.') }}</strong>
+                            </div>
+                        </div>
+
+                        <div>
+                            <flux:label class="text-xs mb-1 block">Pilih Tanggal Kembali Baru:</flux:label>
+                            <flux:input type="date" wire:model.live="newEndDate" min="{{ \Carbon\Carbon::parse($rental->end_date)->addDays(1)->format('Y-m-d') }}" />
+                            @error('newEndDate') <span class="text-xs font-bold text-red-600 mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        @if($extendDays > 0)
+                        <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-emerald-800">Tambahan Durasi:</span>
+                                <strong class="text-emerald-900 font-bold">+{{ $extendDays }} Hari</strong>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-emerald-800">Tambahan Biaya Sewa Pokok:</span>
+                                <strong class="text-emerald-900 font-bold text-sm">Rp {{ number_format($extendCost, 0, ',', '.') }}</strong>
+                            </div>
+                            <div class="flex justify-between items-center text-xs border-t border-emerald-200/60 pt-1.5">
+                                <span class="text-emerald-900 font-bold">Total Sewa Baru:</span>
+                                <strong class="text-navy font-black text-base">Rp {{ number_format($rental->total_price + $extendCost, 0, ',', '.') }}</strong>
+                            </div>
+                        </div>
+                        @endif
+
+                        @if(count($extendCollisions) > 0)
+                        <div class="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5">
+                            <div class="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <span>Peringatan Bentrok Booking Lanjutan ({{ count($extendCollisions) }} Unit):</span>
+                            </div>
+                            <div class="space-y-1 max-h-32 overflow-y-auto text-[11px] text-amber-800">
+                                @foreach($extendCollisions as $col)
+                                    <div class="p-1.5 bg-white/70 rounded border border-amber-200/60">
+                                        Unit <strong>{{ $col['serial_number'] }}</strong> ({{ $col['item_name'] }}) sudah dibooking oleh <strong>{{ $col['colliding_customer'] }}</strong> ({{ $col['colliding_rental_code'] }}) tgl {{ \Carbon\Carbon::parse($col['colliding_start'])->format('d M') }}.
+                                    </div>
+                                @endforeach
+                            </div>
+                            <p class="text-[10.5px] text-amber-700 leading-tight">
+                                Anda tetap dapat memperpanjang sewa ini, namun segera lakukan <em>Unit Swap</em> pada booking yang bentrok di atas.
+                            </p>
+                        </div>
+                        @endif
+
+                        @error('extendError')
+                            <div class="p-3 text-xs font-bold text-red-700 bg-red-50 rounded-xl">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                        <flux:button type="button" wire:click="closeExtendModal" variant="subtle" size="sm">
+                            Batal
+                        </flux:button>
+                        @if($extendDays > 0)
+                        <flux:button type="button" wire:click="executeExtension" variant="primary" size="sm">
+                            Konfirmasi Perpanjangan
+                        </flux:button>
+                        @endif
+                    </div>
+                </div>
             </div>
             @endif
 

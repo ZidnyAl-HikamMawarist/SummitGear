@@ -138,11 +138,16 @@
 
                                         <!-- Batas Toleransi -->
                                         <div class="pl-2.5">
-                                            <div class="flex items-center gap-1.5 text-[10px] uppercase font-black {{ $booking->is_expired ? 'text-rose-500' : 'text-slate-400' }} tracking-wider mb-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 {{ $booking->is_expired ? 'text-rose-500' : 'text-amber-500' }} shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span>Batas Toleransi</span>
+                                            <div class="flex items-center justify-between mb-1">
+                                                <div class="flex items-center gap-1.5 text-[10px] uppercase font-black {{ $booking->is_expired ? 'text-rose-500' : 'text-slate-400' }} tracking-wider">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 {{ $booking->is_expired ? 'text-rose-500' : 'text-amber-500' }} shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span>Batas Toleransi</span>
+                                                </div>
+                                                @if($booking->is_tolerance_extended)
+                                                    <span class="text-[9px] font-bold text-amber-800 bg-amber-100 px-1 py-0.2 rounded">+Toleransi</span>
+                                                @endif
                                             </div>
                                             <p class="text-xs font-black {{ $booking->is_expired ? 'text-rose-800' : 'text-slate-800' }} leading-tight">{{ $booking->deadline_date_formatted }}</p>
                                             <p class="text-xs font-bold {{ $booking->is_expired ? 'text-rose-600' : 'text-amber-600' }} font-mono mt-0.5">{{ $booking->deadline_clock_formatted }}</p>
@@ -241,14 +246,24 @@
                             <div class="p-4 bg-slate-50/70 border-t border-slate-100 mt-auto">
                                 @if($booking->is_expired)
                                     <div class="flex flex-col gap-2">
-                                        <flux:button 
-                                            type="button" 
-                                            wire:click="confirmCancelBooking({{ $booking->id }}, 'expired')" 
-                                            variant="danger" 
-                                            icon="x-circle" 
-                                            class="w-full justify-center font-bold text-xs">
-                                            Validasi Batal & Kembalikan Stok
-                                        </flux:button>
+                                        <div class="flex items-center gap-2">
+                                            <flux:button 
+                                                type="button" 
+                                                wire:click="confirmCancelBooking({{ $booking->id }}, 'expired')" 
+                                                variant="danger" 
+                                                icon="x-circle" 
+                                                class="flex-1 justify-center font-bold text-xs">
+                                                Validasi Batal & Balikkan Stok
+                                            </flux:button>
+                                            <button type="button" wire:click="extendPickupTolerance({{ $booking->id }}, 2)"
+                                                    class="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold transition shadow-xs flex items-center gap-1 shrink-0"
+                                                    title="Beri tambahan toleransi pickup 2 jam">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span>+2 Jam</span>
+                                            </button>
+                                        </div>
 
                                         <flux:button 
                                             type="button" 
@@ -260,7 +275,13 @@
                                         </flux:button>
                                     </div>
                                 @else
-                                    <div class="flex items-center gap-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" wire:click="extendPickupTolerance({{ $booking->id }}, 2)"
+                                                class="px-2.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition shadow-xs flex items-center gap-1 shrink-0"
+                                                title="Beri perpanjangan toleransi pickup 2 jam">
+                                            <span>+2 Jam</span>
+                                        </button>
+
                                         <flux:button 
                                             type="button" 
                                             wire:click="confirmCancelBooking({{ $booking->id }}, 'normal')" 
@@ -338,6 +359,53 @@
                         <span class="font-bold text-emerald-600">{{ $cancelUnitCount }} Unit akan dikembalikan ke gudang</span>
                     </div>
                 </div>
+
+                @if($cancelPaidAmount > 0)
+                <!-- Kebijakan Pembayaran / DP (Skenario 7) -->
+                <div class="p-3.5 rounded-xl border border-amber-300 bg-amber-50/70 space-y-3 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-amber-900">Uang Telah Diterima Toko:</span>
+                        <span class="font-black text-navy text-sm">Rp {{ number_format($cancelPaidAmount, 0, ',', '.') }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-700 block mb-1 font-semibold">Kebijakan Pengembalian Dana:</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="p-2.5 rounded-xl border {{ $cancelAction === 'FORFEIT' ? 'border-amber-600 bg-white shadow-xs font-bold text-amber-950 ring-1 ring-amber-600' : 'border-gray-200 bg-white/60 text-gray-600' }} cursor-pointer flex items-center gap-2">
+                                <input type="radio" wire:model.live="cancelAction" value="FORFEIT" class="text-amber-600">
+                                <span>DP Hangus (SOP Toko)</span>
+                            </label>
+                            <label class="p-2.5 rounded-xl border {{ $cancelAction === 'REFUND' ? 'border-indigo-600 bg-white shadow-xs font-bold text-indigo-950 ring-1 ring-indigo-600' : 'border-gray-200 bg-white/60 text-gray-600' }} cursor-pointer flex items-center gap-2">
+                                <input type="radio" wire:model.live="cancelAction" value="REFUND" class="text-indigo-600">
+                                <span>Refund Pelanggan</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    @if($cancelAction === 'REFUND')
+                        <div class="pt-2 border-t border-amber-200 space-y-2">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[11px] font-bold text-gray-700 block mb-0.5">Nominal Refund (Rp):</label>
+                                    <input type="number" wire:model="refundAmount" max="{{ $cancelPaidAmount }}" class="w-full text-xs font-bold border border-gray-300 rounded-lg p-2 bg-white outline-none focus:ring-1 focus:ring-indigo-500">
+                                    @error('refundAmount') <span class="text-[10.5px] text-red-600 font-bold mt-0.5 block">{{ $message }}</span> @enderror
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-bold text-gray-700 block mb-0.5">PIN Supervisor / Admin:</label>
+                                    <input type="password" wire:model="supervisorPin" placeholder="PIN Otorisasi Kas" class="w-full text-xs font-bold border border-gray-300 rounded-lg p-2 bg-white outline-none focus:ring-1 focus:ring-indigo-500">
+                                    @error('supervisorPin') <span class="text-[10.5px] text-red-600 font-bold mt-0.5 block">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <p class="text-[10.5px] text-amber-800 leading-tight">
+                                Pengembalian dana dilakukan via transfer bank & memerlukan otorisasi PIN. Nilai refund akan dicatat di buku kas.
+                            </p>
+                        </div>
+                    @else
+                        <p class="text-[10.5px] text-amber-800 leading-tight">
+                            Sesuai SOP, pembatalan sepihak menjelang jadwal ambil menyebabkan DP hangus sebagai kompensasi penahanan unit alat.
+                        </p>
+                    @endif
+                </div>
+                @endif
 
                 <!-- Warning note -->
                 <div class="p-3 rounded-xl bg-rose-50/60 border border-rose-200/60 text-xs text-rose-700 flex items-start gap-2">

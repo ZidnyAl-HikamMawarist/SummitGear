@@ -210,6 +210,20 @@
                                 class="w-full justify-center mt-4">
                                 Tutup & Selesaikan Transaksi
                             </flux:button>
+
+                            @if($this->netBalance > 0)
+                            <div class="pt-3 border-t border-gray-100 mt-3">
+                                <flux:button 
+                                    wire:click="requestWriteOff" 
+                                    variant="danger" 
+                                    size="sm"
+                                    icon="x-mark" 
+                                    class="w-full justify-center">
+                                    Tutup sebagai Piutang Macet & Blacklist (PIN Admin)
+                                </flux:button>
+                                <p class="text-[11px] text-gray-400 text-center mt-1">Gunakan jika pelanggan kabur / menolak membayar ganti rugi.</p>
+                            </div>
+                            @endif
                         </div>
                     </flux:card>
                 </div>

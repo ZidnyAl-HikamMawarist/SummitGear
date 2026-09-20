@@ -81,6 +81,13 @@
                 </div>
             @endif
 
+            @if (session()->has('info'))
+                <div class="p-3 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-600 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                    <span>{{ session('info') }}</span>
+                </div>
+            @endif
+
             <form wire:submit.prevent="submitCheckIn" class="space-y-6">
                 <flux:card class="p-0 overflow-hidden">
                     <div class="p-5 flex items-center justify-between border-b border-gray-100 bg-white">
@@ -95,7 +102,18 @@
                                 <p class="text-xs text-gray-500">Bandingkan kondisi awal saat keluar dengan kondisi saat dikembalikan</p>
                             </div>
                         </div>
-                        <flux:badge color="coral" size="sm">{{ $rental->details->count() }} Unit Fisik</flux:badge>
+                        <div class="flex items-center gap-2.5">
+                            <button type="button" 
+                                    wire:click="markAllAsGood" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                    title="Tandai semua unit dalam kondisi Baik">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                <span>Semua Unit Baik</span>
+                            </button>
+                            <flux:badge color="coral" size="sm">{{ $rental->details->count() }} Unit Fisik</flux:badge>
+                        </div>
                     </div>
 
                     <div class="divide-y divide-gray-100">
@@ -161,9 +179,24 @@
                                 </div>
                             </div>
 
-                            @if(in_array($checkinData[$detail->id]['condition'] ?? '', ['Rusak', 'Hilang']) || in_array($checkinData[$detail->id]['return_status'] ?? '', ['DAMAGED', 'LOST']))
+                            @if(($checkinData[$detail->id]['condition'] ?? '') === 'Rusak' || ($checkinData[$detail->id]['return_status'] ?? '') === 'DAMAGED')
+                                <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                        <span class="text-xs font-bold text-amber-900">🛠️ Estimasi Biaya Perbaikan / Denda Kerusakan:</span>
+                                        <span class="text-[11px] text-amber-700">Nilai Penggantian 100%: Rp {{ number_format($detail->itemUnit->replacement_value ?? 0, 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                        <div class="w-full sm:w-56">
+                                            <flux:input type="number" wire:model.live="checkinData.{{ $detail->id }}.damage_cost" placeholder="0" min="0" step="5000" />
+                                        </div>
+                                        <div class="text-[11px] text-gray-500">
+                                            Default: 30% nilai unit. Staf QC dapat mengisi estimasi biaya riil (jahit, sparepart frame, laundry).
+                                        </div>
+                                    </div>
+                                </div>
+                            @elseif(($checkinData[$detail->id]['condition'] ?? '') === 'Hilang' || ($checkinData[$detail->id]['return_status'] ?? '') === 'LOST')
                                 <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 flex items-center justify-between font-medium">
-                                    <span>⚠️ <strong>Denda Dikenakan:</strong> Unit ini ditandai bermasalah. Sistem akan mencatat denda kerusakan / ganti rugi (Nilai unit: Rp {{ number_format($detail->itemUnit->replacement_value ?? 0, 0, ',', '.') }}).</span>
+                                    <span>✕ <strong>Barang Hilang:</strong> Dikenakan ganti rugi 100% nilai unit pengganti: <strong>Rp {{ number_format($detail->itemUnit->replacement_value ?? 0, 0, ',', '.') }}</strong>.</span>
                                 </div>
                             @endif
                         </div>
