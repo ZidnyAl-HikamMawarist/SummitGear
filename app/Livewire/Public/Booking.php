@@ -268,6 +268,11 @@ class Booking extends Component
         return (int) max(0, $target - $this->payableAmount);
     }
 
+    /**
+     * Dapatkan daftar barang yang tersedia beserta kalkulasi kuantitas real-time.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
     public function getAvailableItemsProperty()
     {
         $cartUnitIds = $this->getAllCartUnitIds();
@@ -288,6 +293,7 @@ class Booking extends Component
         $this->totalFilteredItems = (clone $query)->count();
 
         // Ambil hanya sejumlah $perPage yang terlihat di layar untuk performa maksimal
+        /** @var \Illuminate\Database\Eloquent\Collection $items */
         $items = $query->take($this->perPage)->get();
 
         if ($items->isEmpty()) {
@@ -311,28 +317,8 @@ class Booking extends Component
             $unitCountsQuery->whereNotIn('id', $cartUnitIds);
         }
 
-        if ($hasDates) {
-            $unitCountsQuery->whereDoesntHave('rentalDetails.rental', function($q) use ($start, $end) {
-                $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
-                  ->where(function ($subStatus) {
-                      $subStatus->where('status', '!=', 'PENDING_PAYMENT')
-                                ->orWhere(function ($expQ) {
-                                    $expQ->where('status', 'PENDING_PAYMENT')
-                                         ->where(function ($inner) {
-                                             $inner->whereNull('expires_at')
-                                                   ->orWhere('expires_at', '>', Carbon::now());
-                                         });
-                                });
-                  })
-                  ->where(function($query) use ($start, $end) {
-                      $query->whereBetween('start_date', [$start, $end])
-                            ->orWhereBetween('end_date', [$start, $end])
-                            ->orWhere(function($subQuery) use ($start, $end) {
-                                $subQuery->where('start_date', '<=', $start)
-                                         ->where('end_date', '>=', $end);
-                            });
-                  });
-            });
+        if ($hasDates && $start && $end) {
+            $this->filterUnitsWithoutRentalConflict($unitCountsQuery, $start, $end);
         }
 
         $availableCounts = $unitCountsQuery
@@ -403,27 +389,7 @@ class Booking extends Component
                 if ($hasDates) {
                     $start = Carbon::parse($this->start_date)->startOfDay();
                     $end = Carbon::parse($this->end_date)->endOfDay();
-                    $compQuery->whereDoesntHave('rentalDetails.rental', function ($q) use ($start, $end) {
-                        $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
-                          ->where(function ($subStatus) {
-                              $subStatus->where('status', '!=', 'PENDING_PAYMENT')
-                                        ->orWhere(function ($expQ) {
-                                            $expQ->where('status', 'PENDING_PAYMENT')
-                                                 ->where(function ($inner) {
-                                                     $inner->whereNull('expires_at')
-                                                           ->orWhere('expires_at', '>', Carbon::now());
-                                                 });
-                                        });
-                          })
-                          ->where(function ($query) use ($start, $end) {
-                              $query->whereBetween('start_date', [$start, $end])
-                                    ->orWhereBetween('end_date', [$start, $end])
-                                    ->orWhere(function ($subQuery) use ($start, $end) {
-                                        $subQuery->where('start_date', '<=', $start)
-                                                 ->where('end_date', '>=', $end);
-                                    });
-                          });
-                    });
+                    $this->filterUnitsWithoutRentalConflict($compQuery, $start, $end);
                 }
 
                 $units = $compQuery->take($reqQty)->get();
@@ -483,27 +449,7 @@ class Booking extends Component
         if ($hasDates) {
             $start = Carbon::parse($this->start_date)->startOfDay();
             $end = Carbon::parse($this->end_date)->endOfDay();
-            $unitQuery->whereDoesntHave('rentalDetails.rental', function($q) use ($start, $end) {
-                $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
-                  ->where(function ($subStatus) {
-                      $subStatus->where('status', '!=', 'PENDING_PAYMENT')
-                                ->orWhere(function ($expQ) {
-                                    $expQ->where('status', 'PENDING_PAYMENT')
-                                         ->where(function ($inner) {
-                                             $inner->whereNull('expires_at')
-                                                   ->orWhere('expires_at', '>', Carbon::now());
-                                         });
-                                });
-                  })
-                  ->where(function($query) use ($start, $end) {
-                      $query->whereBetween('start_date', [$start, $end])
-                            ->orWhereBetween('end_date', [$start, $end])
-                            ->orWhere(function($subQuery) use ($start, $end) {
-                                $subQuery->where('start_date', '<=', $start)
-                                         ->where('end_date', '>=', $end);
-                            });
-                  });
-            });
+            $this->filterUnitsWithoutRentalConflict($unitQuery, $start, $end);
         }
 
         $unit = $unitQuery->first();
@@ -771,25 +717,7 @@ class Booking extends Component
             foreach ($allUnits as $unitItem) {
                 $isConflicted = RentalDetail::where('item_unit_id', $unitItem['unit_id'])
                     ->whereHas('rental', function ($q) use ($start, $end) {
-                        $q->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
-                          ->where(function ($subStatus) {
-                              $subStatus->where('status', '!=', 'PENDING_PAYMENT')
-                                        ->orWhere(function ($expQ) {
-                                            $expQ->where('status', 'PENDING_PAYMENT')
-                                                 ->where(function ($inner) {
-                                                     $inner->whereNull('expires_at')
-                                                           ->orWhere('expires_at', '>', Carbon::now());
-                                                 });
-                                        });
-                          })
-                          ->where(function ($query) use ($start, $end) {
-                              $query->whereBetween('start_date', [$start, $end])
-                                    ->orWhereBetween('end_date', [$start, $end])
-                                    ->orWhere(function ($sub) use ($start, $end) {
-                                        $sub->where('start_date', '<=', $start)
-                                            ->where('end_date', '>=', $end);
-                                    });
-                          });
+                        $this->buildActiveRentalScheduleQuery($q, $start, $end);
                     })
                     ->lockForUpdate()
                     ->exists();
@@ -801,42 +729,21 @@ class Booking extends Component
                 }
             }
 
-            // Temukan customer berdasarkan nomor telepon atau NIK
-            $customerByPhone = Customer::where('phone', $this->phone)->first();
-            $customerByNik = Customer::where('nik', $this->nik)->first();
-
-            if ($customerByPhone && $customerByNik && $customerByPhone->id !== $customerByNik->id) {
-                $this->addError('phone_number', 'Nomor telepon dan NIK terdaftar pada dua data pelanggan yang berbeda.');
+            if ($this->isCustomerBlacklisted($cleanPhone)) {
+                $this->addError('customer', 'Nomor WhatsApp atau NIK Anda terdaftar dalam daftar hitam (blacklist) kami. Silakan hubungi admin di outlet.');
+                $this->addError('booking_limit', 'Nomor WhatsApp atau NIK Anda terdaftar dalam daftar hitam (blacklist) kami. Silakan hubungi admin di outlet.');
                 DB::rollBack();
                 return;
             }
 
-            $customer = $customerByPhone ?? $customerByNik;
-
+            $customer = $this->resolveBookingCustomer();
             if (!$customer) {
-                $customer = Customer::create([
-                    'name' => $this->name,
-                    'email' => $this->email,
-                    'phone' => $this->phone,
-                    'nik' => $this->nik,
-                    'address' => $this->address,
-                    'consent_at' => now(),
-                ]);
-            } else {
-                $customer->update([
-                    'name' => $this->name,
-                    'email' => $this->email ?: $customer->email,
-                    'phone' => $this->phone,
-                    'nik' => $this->nik,
-                    'address' => $this->address ?: $customer->address,
-                ]);
+                DB::rollBack();
+                return;
             }
 
             // Generate Rental Code
-            $datePrefix = date('Ymd');
-            $lastRental = Rental::where('rental_code', 'like', "TRX-{$datePrefix}-%")->orderBy('id', 'desc')->first();
-            $nextSeq = $lastRental ? ((int) substr($lastRental->rental_code, -4)) + 1 : 1;
-            $rentalCode = "TRX-{$datePrefix}-" . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+            $rentalCode = $this->generateRentalCode();
 
             // Create Rental dengan batas waktu hold 10 menit
             $pickupDateTime = Carbon::parse($this->start_date . ' ' . $this->pickup_time);
@@ -967,6 +874,7 @@ class Booking extends Component
                 ->where('id', $this->activeRentalId)
                 ->lockForUpdate()
                 ->first();
+            /** @var Rental $rental */
 
             if (!$rental) {
                 throw new \Exception('Data booking tidak ditemukan.');
@@ -1150,6 +1058,140 @@ class Booking extends Component
     {
         $this->showSuccessModal = false;
         return redirect()->route('home');
+    }
+
+    /**
+     * Terapkan filter pengecekan jadwal sewa aktif pada ItemUnit query.
+     *
+     * @param mixed $query
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return void
+     */
+    protected function filterUnitsWithoutRentalConflict($query, Carbon $start, Carbon $end): void
+    {
+        $query->whereDoesntHave('rentalDetails.rental', function ($q) use ($start, $end) {
+            $this->buildActiveRentalScheduleQuery($q, $start, $end);
+        });
+    }
+
+    /**
+     * Bangun kondisi query untuk mengecek rental yang bertabrakan dengan rentang jadwal.
+     *
+     * @param mixed $query
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return void
+     */
+    protected function buildActiveRentalScheduleQuery($query, Carbon $start, Carbon $end): void
+    {
+        $query->whereNotIn('status', ['COMPLETED', 'CANCELLED', 'VOID'])
+            ->where(function ($subStatus) {
+                $subStatus->where('status', '!=', Rental::STATUS_PENDING_PAYMENT)
+                    ->orWhere(function ($expQ) {
+                        $expQ->where('status', Rental::STATUS_PENDING_PAYMENT)
+                            ->where(function ($inner) {
+                                $inner->whereNull('expires_at')
+                                    ->orWhere('expires_at', '>', Carbon::now());
+                            });
+                    });
+            })
+            ->where(function ($dateQ) use ($start, $end) {
+                $dateQ->whereBetween('start_date', [$start, $end])
+                    ->orWhereBetween('end_date', [$start, $end])
+                    ->orWhere(function ($sub) use ($start, $end) {
+                        $sub->where('start_date', '<=', $start)
+                            ->where('end_date', '>=', $end);
+                    });
+            });
+    }
+
+    /**
+     * Cek apakah pelanggan termasuk blacklist berdasarkan nomor telepon atau NIK.
+     *
+     * @param string $cleanPhone
+     * @return bool
+     */
+    protected function isCustomerBlacklisted(string $cleanPhone): bool
+    {
+        return Customer::where('is_blacklisted', true)
+            ->where(function ($q) use ($cleanPhone) {
+                $q->where('phone', $this->phone)
+                    ->orWhere('phone', '0' . $cleanPhone)
+                    ->orWhere('phone', $cleanPhone)
+                    ->orWhere('phone', 'like', '%' . $cleanPhone)
+                    ->orWhere('nik', $this->nik);
+            })
+            ->exists();
+    }
+
+    /**
+     * Cari atau buat data Customer berdasarkan input form booking.
+     *
+     * @return Customer|null
+     */
+    protected function resolveBookingCustomer(): ?Customer
+    {
+        $customerByPhone = Customer::where('phone', $this->phone)->first();
+        $customerByNik = Customer::where('nik', $this->nik)->first();
+
+        if ($customerByPhone && $customerByNik && $customerByPhone->id !== $customerByNik->id) {
+            $this->addError('phone_number', 'Nomor telepon dan NIK terdaftar pada dua data pelanggan yang berbeda.');
+            return null;
+        }
+
+        $customer = $customerByNik;
+
+        if (!$customer && $customerByPhone) {
+            if ($customerByPhone->nik && $customerByPhone->nik !== $this->nik) {
+                return Customer::create([
+                    'name' => $this->name,
+                    'email' => $this->email,
+                    'phone' => $this->phone,
+                    'nik' => $this->nik,
+                    'address' => $this->address,
+                    'consent_at' => now(),
+                ]);
+            } else {
+                $customerByPhone->update([
+                    'name' => $this->name,
+                    'email' => $this->email ?: $customerByPhone->email,
+                    'nik' => $this->nik,
+                    'address' => $this->address ?: $customerByPhone->address,
+                ]);
+                return $customerByPhone;
+            }
+        } elseif ($customer) {
+            $customer->update([
+                'name' => $this->name,
+                'email' => $this->email ?: $customer->email,
+                'phone' => $this->phone,
+                'address' => $this->address ?: $customer->address,
+            ]);
+            return $customer;
+        }
+
+        return Customer::create([
+            'name' => $this->name,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'nik' => $this->nik,
+            'address' => $this->address,
+            'consent_at' => now(),
+        ]);
+    }
+
+    /**
+     * Generate kode transaksi baru (TRX-YYYYMMDD-XXXX).
+     *
+     * @return string
+     */
+    protected function generateRentalCode(): string
+    {
+        $datePrefix = date('Ymd');
+        $lastRental = Rental::where('rental_code', 'like', "TRX-{$datePrefix}-%")->orderBy('id', 'desc')->first();
+        $nextSeq = $lastRental ? ((int) substr($lastRental->rental_code, -4)) + 1 : 1;
+        return "TRX-{$datePrefix}-" . str_pad((string) $nextSeq, 4, '0', STR_PAD_LEFT);
     }
 
     public function render()

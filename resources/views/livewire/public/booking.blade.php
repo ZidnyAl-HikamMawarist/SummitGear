@@ -32,18 +32,8 @@
     <!-- Navbar -->
     <header class="bg-white border-b border-gray-200/80 shadow-sm sticky top-0 z-40 backdrop-blur-md bg-white/95">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <a href="{{ route('home') }}" class="flex items-center gap-2.5 group">
-                <div class="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm" style="background: #e8430a;">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m12 3-9 17h18Z"/>
-                    </svg>
-                </div>
-                <div>
-                    <span class="text-[18px] font-extrabold tracking-tight text-[#0f1729] leading-tight block">
-                        Summit<span style="color: #e8430a;">Gear</span>
-                    </span>
-                    <p class="text-[10px] text-gray-400 font-medium hidden sm:block -mt-0.5">Katalog Sewa Online</p>
-                </div>
+            <a href="{{ route('home') }}" class="flex items-center group">
+                <x-app-logo size="md" variant="full" />
             </a>
 
             <div class="flex items-center gap-3 sm:gap-4">
@@ -54,18 +44,13 @@
                 <!-- Cart Button with Clean Unified Badge -->
                 <button type="button" 
                         wire:click="openCart"
-                        @if($this->totalCartCount > 0)
-                            style="background-color: #e8430a !important; color: #ffffff !important; border: 1.5px solid #e8430a; box-shadow: 0 4px 14px -3px rgba(232, 67, 10, 0.5);"
-                        @else
-                            style="background-color: #ffffff !important; color: #334155 !important; border: 1.5px solid #cbd5e1;"
-                        @endif
-                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all transform active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" style="color: {{ $this->totalCartCount > 0 ? '#ffffff' : '#475569' }} !important;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all transform active:scale-95 shadow-xs cursor-pointer {{ $this->totalCartCount > 0 ? 'bg-coral text-white border border-coral shadow-coral/30 shadow-md' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50' }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 {{ $this->totalCartCount > 0 ? 'text-white' : 'text-slate-500' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
-                    <span style="color: {{ $this->totalCartCount > 0 ? '#ffffff' : '#334155' }} !important; font-weight: 800;">Keranjang</span>
+                    <span>Keranjang</span>
                     @if($this->totalCartCount > 0)
-                        <span style="background-color: #ffffff !important; color: #e8430a !important; font-weight: 900; font-size: 11px; padding: 2px 7px; border-radius: 9999px; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                        <span class="bg-white text-coral font-black text-[11px] px-2 py-0.5 rounded-full leading-none shadow-2xs">
                             {{ $this->totalCartCount }}
                         </span>
                     @endif
@@ -1477,6 +1462,30 @@
                         wire:click="closeExpiredModal" 
                         class="w-full py-3 px-4 rounded-xl text-sm font-black text-white bg-slate-900 hover:bg-slate-800 transition-all cursor-pointer shadow-sm">
                     Mengerti & Kembali ke Katalog
+                </button>
+            </div>
+        </div>
+    @endif
+
+    <!-- Mobile Floating Action Bar (Sticky Bottom) -->
+    @if($this->totalCartCount > 0)
+        <div class="fixed bottom-0 left-0 right-0 z-35 p-3.5 bg-white/95 backdrop-blur-md border-t border-slate-200/90 sm:hidden shadow-[0_-4px_24px_rgba(0,0,0,0.1)] transition-transform duration-300">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide block leading-none mb-1">
+                        {{ $this->totalCartCount }} Barang Dipilih
+                    </span>
+                    <span class="text-lg font-black text-navy leading-none">
+                        Rp {{ number_format($this->total_price, 0, ',', '.') }}
+                    </span>
+                </div>
+                <button type="button" 
+                        wire:click="openCart"
+                        class="px-5 py-2.5 rounded-xl bg-coral hover:bg-coral-hover text-white font-black text-xs shadow-md shadow-coral/30 flex items-center gap-2 active:scale-95 transition-all cursor-pointer">
+                    <span>Lihat Keranjang</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
                 </button>
             </div>
         </div>
