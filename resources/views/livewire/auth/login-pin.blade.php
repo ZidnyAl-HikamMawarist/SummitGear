@@ -78,7 +78,6 @@
 
                 <!-- Submit Button -->
                 <flux:button type="submit" 
-                             @click.prevent="$wire.login(pin)"
                              variant="primary" 
                              class="w-full h-11 text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-sm">
                     Masuk ke Sistem
