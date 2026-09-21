@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
         <meta name="description" content="SummitGear — Sewa alat outdoor berkualitas: tenda, carrier, sleeping bag & 50+ alat lainnya. Booking online, ambil di toko.">
 
         <title>{{ $title ?? 'SummitGear — Sewa Alat Outdoor Berkualitas' }}</title>
