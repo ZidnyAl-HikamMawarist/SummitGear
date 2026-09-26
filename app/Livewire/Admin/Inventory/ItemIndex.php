@@ -106,11 +106,12 @@ class ItemIndex extends Component
 
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
         $items = InventoryItem::withCount('units')
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('name', 'ilike', '%' . $this->search . '%')
-                      ->orWhere('sku', 'ilike', '%' . $this->search . '%');
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('name', $likeOperator, '%' . $this->search . '%')
+                      ->orWhere('sku', $likeOperator, '%' . $this->search . '%');
                 });
             })
             ->when($this->categoryFilter, function ($query) {

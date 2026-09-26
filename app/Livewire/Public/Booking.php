@@ -279,10 +279,11 @@ class Booking extends Component
 
         $query = InventoryItem::with('packageItems');
         
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
         if ($this->searchQuery) {
-            $query->where(function ($q) {
-                $q->where('name', 'ilike', '%' . $this->searchQuery . '%')
-                  ->orWhere('sku', 'ilike', '%' . $this->searchQuery . '%');
+            $query->where(function ($q) use ($likeOperator) {
+                $q->where('name', $likeOperator, '%' . $this->searchQuery . '%')
+                  ->orWhere('sku', $likeOperator, '%' . $this->searchQuery . '%');
             });
         }
 

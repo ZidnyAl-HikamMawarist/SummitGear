@@ -88,13 +88,14 @@ class Dashboard extends Component
             ->get();
 
         // 4. Antrean Perawatan Aktif (Cuci & Maintenance)
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
         $activeMaintenanceUnits = ItemUnit::with('item')
             ->whereIn('status', ['Cleaning', 'Maintenance'])
-            ->when($this->searchUnit, function($q) {
-                $q->where(function($sub) {
-                    $sub->where('serial_number', 'ilike', '%' . $this->searchUnit . '%')
-                        ->orWhereHas('item', function($iq) {
-                            $iq->where('name', 'ilike', '%' . $this->searchUnit . '%');
+            ->when($this->searchUnit, function($q) use ($likeOperator) {
+                $q->where(function($sub) use ($likeOperator) {
+                    $sub->where('serial_number', $likeOperator, '%' . $this->searchUnit . '%')
+                        ->orWhereHas('item', function($iq) use ($likeOperator) {
+                            $iq->where('name', $likeOperator, '%' . $this->searchUnit . '%');
                         });
                 });
             })

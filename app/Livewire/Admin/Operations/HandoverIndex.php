@@ -26,13 +26,14 @@ class HandoverIndex extends Component
 
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
         $rentals = Rental::with(['customer', 'details.itemUnit.item'])
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('rental_code', 'ilike', '%' . $this->search . '%')
-                      ->orWhereHas('customer', function ($cq) {
-                          $cq->where('name', 'ilike', '%' . $this->search . '%')
-                             ->orWhere('phone', 'ilike', '%' . $this->search . '%');
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('rental_code', $likeOperator, '%' . $this->search . '%')
+                      ->orWhereHas('customer', function ($cq) use ($likeOperator) {
+                          $cq->where('name', $likeOperator, '%' . $this->search . '%')
+                             ->orWhere('phone', $likeOperator, '%' . $this->search . '%');
                       });
                 });
             })

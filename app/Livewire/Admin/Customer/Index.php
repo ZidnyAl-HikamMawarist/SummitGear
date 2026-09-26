@@ -40,12 +40,13 @@ class Index extends Component
 
     protected function buildQuery()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
         return Customer::withCount('rentals')
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('name', 'ilike', '%' . $this->search . '%')
-                      ->orWhere('nik', 'ilike', '%' . $this->search . '%')
-                      ->orWhere('phone', 'ilike', '%' . $this->search . '%');
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('name', $likeOperator, '%' . $this->search . '%')
+                      ->orWhere('nik', $likeOperator, '%' . $this->search . '%')
+                      ->orWhere('phone', $likeOperator, '%' . $this->search . '%');
                 });
             })
             ->when($this->dateFrom, function ($query) {

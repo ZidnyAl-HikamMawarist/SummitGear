@@ -54,6 +54,7 @@ class Index extends Component
 
     protected function buildQuery()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
         return AuditLog::with(['user', 'approver'])
             ->when($this->activeTab !== 'semua' && $this->activeTab !== 'ALL', function ($query) {
                 if ($this->activeTab === 'system') {
@@ -64,11 +65,11 @@ class Index extends Component
                     });
                 }
             })
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('action', 'ilike', '%' . $this->search . '%')
-                      ->orWhere('entity', 'ilike', '%' . $this->search . '%')
-                      ->orWhere('reason', 'ilike', '%' . $this->search . '%');
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('action', $likeOperator, '%' . $this->search . '%')
+                      ->orWhere('entity', $likeOperator, '%' . $this->search . '%')
+                      ->orWhere('reason', $likeOperator, '%' . $this->search . '%');
                 });
             })
             ->when($this->actionFilter !== 'ALL', function ($query) {
