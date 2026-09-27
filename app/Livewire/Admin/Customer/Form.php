@@ -59,10 +59,21 @@ class Form extends Component
     {
         $this->validate();
 
+        $cleanPhone = preg_replace('/[^0-9]/', '', (string)$this->phone);
+        if (str_starts_with($cleanPhone, '0')) {
+            $formattedPhone = '+62' . substr($cleanPhone, 1);
+        } elseif (str_starts_with($cleanPhone, '62')) {
+            $formattedPhone = '+' . $cleanPhone;
+        } elseif (!empty($cleanPhone)) {
+            $formattedPhone = '+62' . $cleanPhone;
+        } else {
+            $formattedPhone = null;
+        }
+
         $data = [
             'name' => $this->name,
             'nik' => $this->nik,
-            'phone' => $this->phone,
+            'phone' => $formattedPhone,
             'email' => $this->email,
             'address' => $this->address,
             'consent_at' => $this->has_consent ? now() : null,

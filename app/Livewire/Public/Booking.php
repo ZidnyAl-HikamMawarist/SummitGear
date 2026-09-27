@@ -1054,6 +1054,7 @@ class Booking extends Component
                 $this->isCartOpen = false;
                 $this->cart = [];
                 $this->activeRentalId = null;
+                session()->forget('public_booking_state');
             } elseif ($rental->status === Rental::STATUS_CANCELLED) {
                 $this->handleExpiredBooking();
             }
@@ -1339,7 +1340,14 @@ class Booking extends Component
      */
     protected function resolveBookingCustomer(): ?Customer
     {
-        $customerByPhone = Customer::where('phone', $this->phone)->first();
+        $cleanPhone = preg_replace('/[^0-9]/', '', (string)$this->phone_number);
+        $customerByPhone = Customer::where(function ($q) use ($cleanPhone) {
+            $q->where('phone', $this->phone)
+              ->orWhere('phone', '0' . $cleanPhone)
+              ->orWhere('phone', $cleanPhone)
+              ->orWhere('phone', 'like', '%' . $cleanPhone);
+        })->first();
+
         $customerByNik = Customer::where('nik', $this->nik)->first();
 
         if ($customerByPhone && $customerByNik && $customerByPhone->id !== $customerByNik->id) {
@@ -1347,33 +1355,16 @@ class Booking extends Component
             return null;
         }
 
-        $customer = $customerByNik;
+        $customer = $customerByNik ?: $customerByPhone;
 
-        if (!$customer && $customerByPhone) {
-            if ($customerByPhone->nik && $customerByPhone->nik !== $this->nik) {
-                return Customer::create([
-                    'name' => $this->name,
-                    'email' => $this->email,
-                    'phone' => $this->phone,
-                    'nik' => $this->nik,
-                    'address' => $this->address,
-                    'consent_at' => now(),
-                ]);
-            } else {
-                $customerByPhone->update([
-                    'name' => $this->name,
-                    'email' => $this->email ?: $customerByPhone->email,
-                    'nik' => $this->nik,
-                    'address' => $this->address ?: $customerByPhone->address,
-                ]);
-                return $customerByPhone;
-            }
-        } elseif ($customer) {
+        if ($customer) {
             $customer->update([
                 'name' => $this->name,
                 'email' => $this->email ?: $customer->email,
                 'phone' => $this->phone,
+                'nik' => $this->nik,
                 'address' => $this->address ?: $customer->address,
+                'consent_at' => now(),
             ]);
             return $customer;
         }

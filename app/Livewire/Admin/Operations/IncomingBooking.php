@@ -103,9 +103,28 @@ class IncomingBooking extends Component
                 'supervisorPin.required' => 'PIN Supervisor wajib diisi untuk otorisasi refund kas.',
             ]);
 
-            $validPin = \App\Models\Setting::where('key', 'admin_supervisor_pin')->value('value') ?? '1234';
-            if ($this->supervisorPin !== $validPin) {
-                $this->addError('supervisorPin', 'PIN Supervisor tidak valid.');
+            $inputPin = trim((string)$this->supervisorPin);
+            $isPinValid = false;
+
+            // 1. Cek terhadap Admin users di sistem
+            $admins = \App\Models\User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                if ($inputPin === (string)$admin->pin || \Illuminate\Support\Facades\Hash::check($inputPin, (string)$admin->pin)) {
+                    $isPinValid = true;
+                    break;
+                }
+            }
+
+            // 2. Cek setting supervisor pin jika dikonfigurasi
+            if (!$isPinValid) {
+                $customPin = \App\Models\Setting::where('key', 'admin_supervisor_pin')->value('value');
+                if (!empty($customPin) && ($inputPin === $customPin || \Illuminate\Support\Facades\Hash::check($inputPin, $customPin))) {
+                    $isPinValid = true;
+                }
+            }
+
+            if (!$isPinValid) {
+                $this->addError('supervisorPin', 'PIN Supervisor / Admin tidak valid atau tidak memiliki wewenang.');
                 return;
             }
         }

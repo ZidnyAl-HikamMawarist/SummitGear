@@ -38,7 +38,7 @@ class CheckIn extends Component
             $checkoutInspection = $detail->inspections->where('stage', 'CHECKOUT')->first();
             $this->initialConditions[$detail->id] = $checkoutInspection ? $checkoutInspection->condition_category : 'Baik';
 
-            $replacementVal = (int) ($detail->itemUnit->replacement_value ?? 0);
+            $replacementVal = (int) ($detail->itemUnit?->replacement_value ?? 0);
             $defaultDamageCost = (int) round($replacementVal * 0.3);
 
             $this->checkinData[$detail->id] = [
@@ -122,13 +122,17 @@ class CheckIn extends Component
                 if ($detail->itemUnit) {
                     if ($returnStatus === 'LOST' || $cond === 'Hilang') {
                         $detail->itemUnit->update(['status' => 'Lost', 'condition_notes' => 'Hilang saat disewa: ' . $notes]);
-                        $totalDamageOrLostPenalty += $detail->itemUnit->replacement_value;
+                        $replVal = (int) ($detail->itemUnit->replacement_value ?? 0);
+                        $totalDamageOrLostPenalty += $replVal;
                         $hasIssues = true;
+
+                        $itemName = $detail->itemUnit->item?->name ?? 'Barang';
+                        $sn = $detail->itemUnit->serial_number ?? '-';
 
                         Penalty::create([
                             'rental_id' => $this->rental->id,
-                            'reason' => "Ganti rugi barang hilang: {$detail->itemUnit->item->name} (SN: {$detail->itemUnit->serial_number})",
-                            'amount' => $detail->itemUnit->replacement_value,
+                            'reason' => "Ganti rugi barang hilang: {$itemName} (SN: {$sn})",
+                            'amount' => $replVal,
                             'is_settled' => false,
                         ]);
                     } elseif ($returnStatus === 'DAMAGED' || $cond === 'Rusak') {
@@ -142,10 +146,11 @@ class CheckIn extends Component
                         $totalDamageOrLostPenalty += $damageCost;
                         $hasIssues = true;
 
+                        $itemName = $detail->itemUnit->item?->name ?? 'Barang';
                         $reasonNote = !empty($notes) ? " ({$notes})" : '';
                         Penalty::create([
                             'rental_id' => $this->rental->id,
-                            'reason' => "Denda kerusakan alat: {$detail->itemUnit->item->name}{$reasonNote}",
+                            'reason' => "Denda kerusakan alat: {$itemName}{$reasonNote}",
                             'amount' => $damageCost,
                             'is_settled' => false,
                         ]);

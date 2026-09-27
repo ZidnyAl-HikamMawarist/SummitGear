@@ -80,9 +80,7 @@ class Dashboard extends Component
                 },
                 'units as total_units_count'
             ])
-            ->havingRaw('COUNT(CASE WHEN item_units.status = \'Available\' THEN 1 END) <= 1')
-            ->leftJoin('item_units', 'inventory_items.id', '=', 'item_units.item_id')
-            ->groupBy('inventory_items.id')
+            ->having('available_units_count', '<=', 1)
             ->orderBy('available_units_count', 'asc')
             ->take(5)
             ->get();

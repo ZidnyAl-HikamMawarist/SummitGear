@@ -33,9 +33,7 @@ class LandingPage extends Component
             $query->where('category', $this->selectedCategory);
         }
 
-        return $query->get()->filter(function ($item) {
-            return !empty($item->photo_url) && (file_exists(public_path($item->photo_url)) || file_exists(public_path('storage/' . $item->photo_url)));
-        });
+        return $query->get();
     }
 
     public function getItemsProperty()
