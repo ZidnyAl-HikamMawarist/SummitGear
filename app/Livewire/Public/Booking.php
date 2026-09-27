@@ -173,8 +173,103 @@ class Booking extends Component
 
     public function mount()
     {
-        $this->start_date = null;
-        $this->end_date = null;
+        $saved = session('public_booking_state', []);
+
+        if (!empty($saved) && is_array($saved)) {
+            $this->cart = $saved['cart'] ?? [];
+            $this->cartStep = $saved['cartStep'] ?? 'items';
+            $this->isCartOpen = (bool) ($saved['isCartOpen'] ?? false);
+            $this->name = $saved['name'] ?? '';
+            $this->email = $saved['email'] ?? '';
+            $this->phone_number = $saved['phone_number'] ?? '';
+            $this->phone = $saved['phone'] ?? '';
+            $this->nik = $saved['nik'] ?? '';
+            $this->address = $saved['address'] ?? '';
+            $this->province = $saved['province'] ?? '';
+            $this->regency = $saved['regency'] ?? '';
+            $this->district = $saved['district'] ?? '';
+            $this->village = $saved['village'] ?? '';
+            $this->rt = $saved['rt'] ?? '';
+            $this->rw = $saved['rw'] ?? '';
+            $this->postal_code = $saved['postal_code'] ?? '';
+            $this->street_address = $saved['street_address'] ?? '';
+            $this->start_date = $saved['start_date'] ?? null;
+            $this->end_date = $saved['end_date'] ?? null;
+            $this->pickup_time = $saved['pickup_time'] ?? '10:00';
+            $this->paymentOption = $saved['paymentOption'] ?? 'dp';
+            $this->selectedPaymentMethod = $saved['selectedPaymentMethod'] ?? 'qris';
+            $this->confirmedBooking = $saved['confirmedBooking'] ?? null;
+
+            $savedRentalId = $saved['activeRentalId'] ?? null;
+            if ($savedRentalId) {
+                $rental = Rental::find($savedRentalId);
+                if ($rental && $rental->status === Rental::STATUS_PENDING_PAYMENT) {
+                    if ($rental->expires_at && Carbon::now()->lessThan($rental->expires_at)) {
+                        $this->activeRentalId = $rental->id;
+                        $this->activeRentalCode = $rental->rental_code;
+                        $this->expiresAt = $rental->expires_at->toIso8601String();
+                        $this->remainingSeconds = max(0, Carbon::now()->diffInSeconds($rental->expires_at, false));
+                        $this->cartStep = 'payment';
+                        $this->isCartOpen = true;
+                        $this->total_price = (float) $rental->total_price;
+                    } else {
+                        // Sesi telah kedaluwarsa saat refresh
+                        $this->activeRentalId = $rental->id;
+                        $this->handleExpiredBooking();
+                    }
+                } else {
+                    $this->activeRentalId = null;
+                    $this->activeRentalCode = null;
+                    if ($this->cartStep === 'payment') {
+                        $this->cartStep = !empty($this->cart) ? 'items' : 'items';
+                    }
+                }
+            }
+
+            if (!empty($this->cart)) {
+                $this->calculateTotalPrice();
+            }
+        } else {
+            $this->start_date = null;
+            $this->end_date = null;
+            $this->pickup_time = '10:00';
+        }
+    }
+
+    public function dehydrate()
+    {
+        if ($this->showSuccessModal) {
+            session()->forget('public_booking_state');
+            return;
+        }
+
+        session()->put('public_booking_state', [
+            'cart' => $this->cart,
+            'cartStep' => $this->cartStep,
+            'isCartOpen' => $this->isCartOpen,
+            'name' => $this->name,
+            'email' => $this->email,
+            'phone_number' => $this->phone_number,
+            'phone' => $this->phone,
+            'nik' => $this->nik,
+            'address' => $this->address,
+            'province' => $this->province,
+            'regency' => $this->regency,
+            'district' => $this->district,
+            'village' => $this->village,
+            'rt' => $this->rt,
+            'rw' => $this->rw,
+            'postal_code' => $this->postal_code,
+            'street_address' => $this->street_address,
+            'start_date' => $this->start_date,
+            'end_date' => $this->end_date,
+            'pickup_time' => $this->pickup_time,
+            'paymentOption' => $this->paymentOption,
+            'selectedPaymentMethod' => $this->selectedPaymentMethod,
+            'activeRentalId' => $this->activeRentalId,
+            'activeRentalCode' => $this->activeRentalCode,
+            'confirmedBooking' => $this->confirmedBooking,
+        ]);
     }
 
     public function openCart()
@@ -1167,6 +1262,7 @@ class Booking extends Component
 
     public function closeSuccessModal()
     {
+        session()->forget('public_booking_state');
         $this->showSuccessModal = false;
         return redirect()->route('home');
     }

@@ -206,4 +206,52 @@ class BookingCartTest extends TestCase
             ->assertSet('duration_days', 3);
         $this->assertEquals(150000, $component->get('total_price'));
     }
+
+    public function test_booking_state_is_persisted_across_page_refresh()
+    {
+        $item = InventoryItem::create([
+            'name' => 'Tenda Dome 4P',
+            'sku' => 'TND-003',
+            'category' => 'Tenda',
+            'rental_type' => 'daily',
+            'price_per_day' => 50000,
+            'is_active' => true,
+        ]);
+        ItemUnit::create([
+            'item_id' => $item->id,
+            'serial_number' => 'TND-003-01',
+            'status' => 'Available',
+        ]);
+
+        // User fills data in step 2 (form)
+        $component = Livewire::test(Booking::class)
+            ->call('addToCart', $item->id)
+            ->call('proceedToForm')
+            ->set('name', 'Budi Santoso')
+            ->set('phone_number', '081234567890')
+            ->set('nik', '3201123456780001')
+            ->set('province', 'Jawa Barat')
+            ->set('regency', 'Kab. Bandung')
+            ->set('district', 'Soreang')
+            ->set('village', 'Soreang')
+            ->set('street_address', 'Jl. Soreang No. 10');
+
+        // Verify session was populated by dehydrate()
+        $this->assertTrue(session()->has('public_booking_state'));
+        $savedState = session('public_booking_state');
+        $this->assertEquals('Budi Santoso', $savedState['name']);
+        $this->assertEquals('Jawa Barat', $savedState['province']);
+        $this->assertEquals('form', $savedState['cartStep']);
+
+        // Simulate page refresh (new component mount)
+        $refreshedComponent = Livewire::test(Booking::class);
+        $refreshedComponent->assertSet('name', 'Budi Santoso')
+            ->assertSet('province', 'Jawa Barat')
+            ->assertSet('regency', 'Kab. Bandung')
+            ->assertSet('district', 'Soreang')
+            ->assertSet('village', 'Soreang')
+            ->assertSet('street_address', 'Jl. Soreang No. 10')
+            ->assertSet('cartStep', 'form')
+            ->assertCount('cart', 1);
+    }
 }
