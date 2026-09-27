@@ -16,6 +16,7 @@ use App\Mail\BookingInvoiceMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use App\Jobs\ReleaseHoldBookingJob;
 use Carbon\Carbon;
 
@@ -786,6 +787,13 @@ class Booking extends Component
     {
         $this->cartStep = 'form';
 
+        $throttleKey = 'public_booking_submit|' . request()->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $this->addError('booking_limit', "Terlalu banyak permintaan booking. Silakan coba lagi dalam {$seconds} detik.");
+            return;
+        }
+
         if (!$this->start_date) {
             $this->start_date = now()->format('Y-m-d');
         }
@@ -982,6 +990,8 @@ class Booking extends Component
 
             AuditLogger::log('CREATE', 'Rental', $rental->id, "Reservasi online dibuat ({$rentalCode}) dengan hold stok 10 menit. Menunggu pembayaran DP/Lunas.");
 
+            RateLimiter::hit($throttleKey, 300);
+
             DB::commit();
 
             // Set state untuk Step 3: Pembayaran / DP dengan Countdown Timer 10 Menit
@@ -1074,6 +1084,14 @@ class Booking extends Component
             $this->addError('payment', 'Sesi booking tidak ditemukan.');
             return;
         }
+
+        $throttleKey = 'public_booking_payment|' . request()->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $this->addError('payment', "Terlalu banyak percobaan pembayaran. Silakan tunggu {$seconds} detik.");
+            return;
+        }
+        RateLimiter::hit($throttleKey, 60);
 
         DB::beginTransaction();
         try {

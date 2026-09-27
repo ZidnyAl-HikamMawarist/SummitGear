@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+        $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'kasir.timeout' => \App\Http\Middleware\KasirTimeoutMiddleware::class,

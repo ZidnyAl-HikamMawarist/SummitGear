@@ -44,8 +44,8 @@ class ScreenLock extends Component
 
         $user = Auth::user();
 
-        // Check if input matches PIN (we assume PIN is hashed, or plain depending on implementation. Usually PIN is not hashed if it's 6 digits, but let's assume it is just plain string as per seed)
-        if ($this->pin === $user->pin || Hash::check($this->pin, $user->password)) {
+        // Check if input matches PIN (support both hashed and plain string)
+        if ($this->pin === $user->pin || Hash::check($this->pin, (string)$user->pin) || Hash::check($this->pin, (string)$user->password)) {
             RateLimiter::clear($throttleKey);
             $this->isLocked = false;
             $this->pin = '';
