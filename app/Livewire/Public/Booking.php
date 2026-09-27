@@ -28,6 +28,116 @@ class Booking extends Component
     public $phone_number = '';
     public $nik = '';
     public $address = '';
+    
+    // Cascading Address Fields (Provinsi -> Kab/Kota -> Kecamatan -> Desa -> RT/RW & Kode Pos)
+    public $province = '';
+    public $regency = '';
+    public $district = '';
+    public $village = '';
+    public $rt = '';
+    public $rw = '';
+    public $postal_code = '';
+    public $street_address = '';
+
+    public function updatedProvince()
+    {
+        $this->regency = '';
+        $this->district = '';
+        $this->village = '';
+        $this->postal_code = '';
+        $this->compileAddress();
+    }
+
+    public function updatedRegency()
+    {
+        $this->district = '';
+        $this->village = '';
+        $this->postal_code = '';
+        $this->compileAddress();
+    }
+
+    public function updatedDistrict()
+    {
+        $this->village = '';
+        $this->postal_code = '';
+        $this->compileAddress();
+    }
+
+    public function updatedVillage($villageName)
+    {
+        if ($this->province && $this->regency && $this->district && $villageName) {
+            $villages = \App\Services\IndonesianRegionService::getVillages($this->province, $this->regency, $this->district);
+            foreach ($villages as $v) {
+                if ($v['name'] === $villageName) {
+                    $this->postal_code = $v['postal_code'];
+                    break;
+                }
+            }
+        }
+        $this->compileAddress();
+    }
+
+    public function updatedRt() { $this->compileAddress(); }
+    public function updatedRw() { $this->compileAddress(); }
+    public function updatedPostalCode() { $this->compileAddress(); }
+    public function updatedStreetAddress() { $this->compileAddress(); }
+
+    public function compileAddress()
+    {
+        $parts = [];
+        if (!empty(trim($this->street_address))) {
+            $parts[] = trim($this->street_address);
+        }
+        
+        $rtRw = [];
+        if (!empty(trim($this->rt))) {
+            $rtRw[] = 'RT ' . trim($this->rt);
+        }
+        if (!empty(trim($this->rw))) {
+            $rtRw[] = 'RW ' . trim($this->rw);
+        }
+        if (!empty($rtRw)) {
+            $parts[] = implode('/', $rtRw);
+        }
+
+        if (!empty($this->village)) {
+            $parts[] = 'Desa/Kel. ' . $this->village;
+        }
+        if (!empty($this->district)) {
+            $parts[] = 'Kec. ' . $this->district;
+        }
+        if (!empty($this->regency)) {
+            $parts[] = $this->regency;
+        }
+        if (!empty($this->province)) {
+            $parts[] = $this->province;
+        }
+        if (!empty(trim($this->postal_code))) {
+            $parts[] = trim($this->postal_code);
+        }
+
+        $this->address = implode(', ', $parts);
+    }
+
+    public function getProvincesProperty()
+    {
+        return \App\Services\IndonesianRegionService::getProvinces();
+    }
+
+    public function getRegenciesProperty()
+    {
+        return $this->province ? \App\Services\IndonesianRegionService::getRegencies($this->province) : [];
+    }
+
+    public function getDistrictsProperty()
+    {
+        return ($this->province && $this->regency) ? \App\Services\IndonesianRegionService::getDistricts($this->province, $this->regency) : [];
+    }
+
+    public function getVillagesProperty()
+    {
+        return ($this->province && $this->regency && $this->district) ? \App\Services\IndonesianRegionService::getVillages($this->province, $this->regency, $this->district) : [];
+    }
 
     // Booking Dates & Time
     public $start_date;

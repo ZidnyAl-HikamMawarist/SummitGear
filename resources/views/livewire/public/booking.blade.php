@@ -897,20 +897,119 @@
                                         </div>
                                     </div>
 
-                                    <!-- Alamat Tinggal -->
-                                    <div>
-                                        <div class="flex items-center justify-between gap-2 mb-1">
-                                            <label class="text-xs font-bold text-slate-800">Alamat Tinggal / Domisili <span class="text-red-500">*</span></label>
-                                            <span class="text-[11px] text-gray-400 font-medium">Alamat domisili saat ini</span>
+                                     <!-- Alamat Tinggal / Domisili Lengkap (Cascading Dropdown Wilayah Indonesia) -->
+                                    <div class="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-3.5" x-data="{ manualMode: false }">
+                                        <div class="flex items-center justify-between gap-2 border-b border-slate-200/60 pb-2.5">
+                                            <div class="flex items-center gap-2">
+                                                <div class="p-1.5 rounded-lg bg-orange-100 text-orange-600 shrink-0">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                                </div>
+                                                <div>
+                                                    <label class="text-xs font-black text-slate-800 uppercase tracking-wider block">Alamat Tinggal / Domisili <span class="text-red-500">*</span></label>
+                                                    <span class="text-[10.5px] text-slate-500 font-medium">Pilih wilayah bertingkat (Provinsi &rarr; Kab/Kota &rarr; Kec &rarr; Desa/Dusun)</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Mode Toggle Button -->
+                                            <button type="button" 
+                                                    @click="manualMode = !manualMode" 
+                                                    class="text-[11px] font-bold text-orange-600 hover:text-orange-700 hover:underline transition cursor-pointer shrink-0">
+                                                <span x-text="manualMode ? '← Gunakan Dropdown' : 'Ketik Manual'"></span>
+                                            </button>
                                         </div>
-                                        <flux:textarea 
-                                            wire:model="address" 
-                                            rows="2" 
-                                            placeholder="Tuliskan alamat lengkap domisili saat ini" 
-                                            required 
-                                        />
+
+                                        <!-- Mode 1: Cascading Dropdowns -->
+                                        <div x-show="!manualMode" class="space-y-3">
+                                            <!-- Row 1: Provinsi & Kabupaten/Kota -->
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label class="text-[11px] font-bold text-slate-700 block mb-1">1. Provinsi <span class="text-red-500">*</span></label>
+                                                    <select wire:model.live="province" class="w-full text-xs font-semibold py-2.5 px-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-slate-800 transition">
+                                                        <option value="">-- Pilih Provinsi --</option>
+                                                        @foreach($this->provinces as $prov)
+                                                            <option value="{{ $prov }}">{{ $prov }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label class="text-[11px] font-bold text-slate-700 block mb-1">2. Kabupaten / Kota <span class="text-red-500">*</span></label>
+                                                    <select wire:model.live="regency" {{ empty($province) ? 'disabled' : '' }} class="w-full text-xs font-semibold py-2.5 px-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-slate-800 transition disabled:bg-slate-100 disabled:text-slate-400">
+                                                        <option value="">{{ empty($province) ? '-- Pilih Provinsi Dulu --' : '-- Pilih Kab/Kota --' }}</option>
+                                                        @foreach($this->regencies as $reg)
+                                                            <option value="{{ $reg }}">{{ $reg }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Row 2: Kecamatan & Desa/Dusun -->
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label class="text-[11px] font-bold text-slate-700 block mb-1">3. Kecamatan <span class="text-red-500">*</span></label>
+                                                    <select wire:model.live="district" {{ empty($regency) ? 'disabled' : '' }} class="w-full text-xs font-semibold py-2.5 px-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-slate-800 transition disabled:bg-slate-100 disabled:text-slate-400">
+                                                        <option value="">{{ empty($regency) ? '-- Pilih Kab/Kota Dulu --' : '-- Pilih Kecamatan --' }}</option>
+                                                        @foreach($this->districts as $dist)
+                                                            <option value="{{ $dist }}">{{ $dist }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label class="text-[11px] font-bold text-slate-700 block mb-1">4. Desa / Kelurahan / Dusun <span class="text-red-500">*</span></label>
+                                                    <select wire:model.live="village" {{ empty($district) ? 'disabled' : '' }} class="w-full text-xs font-semibold py-2.5 px-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-slate-800 transition disabled:bg-slate-100 disabled:text-slate-400">
+                                                        <option value="">{{ empty($district) ? '-- Pilih Kecamatan Dulu --' : '-- Pilih Desa/Kelurahan --' }}</option>
+                                                        @foreach($this->villages as $vil)
+                                                            <option value="{{ $vil['name'] }}">{{ $vil['name'] }} (Kode Pos: {{ $vil['postal_code'] }})</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Row 3: RT / RW & Kode Pos -->
+                                            <div class="grid grid-cols-3 gap-2.5">
+                                                <div>
+                                                    <label class="text-[10.5px] font-bold text-slate-700 block mb-1">RT</label>
+                                                    <input type="text" wire:model.live="rt" placeholder="01" maxlength="4" class="w-full text-xs font-semibold py-2 px-2.5 bg-white border border-slate-300 rounded-xl text-center focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-slate-800" />
+                                                </div>
+
+                                                <div>
+                                                    <label class="text-[10.5px] font-bold text-slate-700 block mb-1">RW</label>
+                                                    <input type="text" wire:model.live="rw" placeholder="05" maxlength="4" class="w-full text-xs font-semibold py-2 px-2.5 bg-white border border-slate-300 rounded-xl text-center focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-slate-800" />
+                                                </div>
+
+                                                <div>
+                                                    <label class="text-[10.5px] font-bold text-slate-700 block mb-1">Kode Pos</label>
+                                                    <input type="text" wire:model.live="postal_code" placeholder="40123" maxlength="6" class="w-full text-xs font-semibold py-2 px-2.5 bg-white border border-slate-300 rounded-xl text-center focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-slate-800" />
+                                                </div>
+                                            </div>
+
+                                            <!-- Row 4: Nama Jalan & Nomor Rumah / Patokan -->
+                                            <div>
+                                                <label class="text-[11px] font-bold text-slate-700 block mb-1">5. Nama Jalan, No. Rumah / Patokan <span class="text-red-500">*</span></label>
+                                                <input type="text" wire:model.live="street_address" placeholder="Contoh: Jl. Rinjani No. 45, Blok B (Depan Masjid)" class="w-full text-xs font-semibold py-2.5 px-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-slate-800" />
+                                            </div>
+                                        </div>
+
+                                        <!-- Mode 2: Manual Textarea -->
+                                        <div x-show="manualMode" style="display: none;">
+                                            <label class="text-[11px] font-bold text-slate-700 block mb-1">Tulis Alamat Lengkap Manual</label>
+                                            <textarea wire:model.live="address" rows="3" placeholder="Tuliskan nama jalan, RT/RW, Dusun/Desa, Kecamatan, Kota/Kabupaten, Provinsi & Kode Pos lengkap..." class="w-full text-xs font-semibold p-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-slate-800"></textarea>
+                                        </div>
+
+                                        <!-- Live Compiled Address Preview -->
+                                        @if(!empty($address))
+                                            <div class="p-2.5 rounded-xl bg-orange-50/80 border border-orange-200 text-[11px] text-orange-950 flex items-start gap-2">
+                                                <svg class="w-4 h-4 text-orange-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                <div>
+                                                    <span class="font-bold block text-[10px] uppercase tracking-wider text-orange-800">Alamat Lengkap Tersusun:</span>
+                                                    <span class="font-medium leading-relaxed">{{ $address }}</span>
+                                                </div>
+                                            </div>
+                                        @endif
+
                                         @error('address')
-                                            <p class="text-[11px] font-bold text-red-600 mt-1 flex items-center gap-1">
+                                            <p class="text-[11px] font-bold text-red-600 flex items-center gap-1">
                                                 <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                                                 <span>{{ $message }}</span>
                                             </p>
