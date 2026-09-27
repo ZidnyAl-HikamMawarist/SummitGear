@@ -1,11 +1,18 @@
-<div class="admin-layout" wire:poll.10s>
-    <x-admin-sidebar />
+<div class="{{ auth()->check() && auth()->user()->role === 'kasir' ? 'cashier-workspace w-screen h-screen flex flex-col overflow-hidden fixed inset-0 bg-[#f4f4f5]' : 'admin-layout' }}" wire:poll.10s>
+    @if(auth()->check() && auth()->user()->role === 'kasir')
+        <!-- Dedicated Persistent Cashier Topbar with Tabs -->
+        <x-cashier-header active="booking" />
+    @else
+        <x-admin-sidebar />
+    @endif
 
-    <main class="main-content">
-        <x-admin-topbar title="Booking Masuk (Online)" />
+    <main class="{{ auth()->check() && auth()->user()->role === 'kasir' ? 'flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8' : 'main-content' }}">
+        @if(!auth()->check() || auth()->user()->role !== 'kasir')
+            <x-admin-topbar title="Booking Masuk (Online)" />
+        @endif
 
-        <div class="content-area">
-            <div class="mx-auto w-full max-w-7xl px-6 py-6 space-y-6">
+        <div class="{{ auth()->check() && auth()->user()->role === 'kasir' ? 'mx-auto w-full max-w-7xl space-y-6 pb-16' : 'content-area' }}">
+            <div class="{{ auth()->check() && auth()->user()->role === 'kasir' ? 'space-y-6' : 'mx-auto w-full max-w-7xl px-6 py-6 space-y-6' }}">
                 <!-- Header Bar -->
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>

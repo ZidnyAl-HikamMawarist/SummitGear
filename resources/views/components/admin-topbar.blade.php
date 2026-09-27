@@ -14,6 +14,21 @@
             <h1 class="text-sm sm:text-base font-bold text-slate-800 tracking-tight hidden sm:block">{{ $title }}</h1>
         @endif
     </div>
+
+    <!-- Center/Quick Nav Shortcuts (POS & Booking) -->
+    <div class="hidden md:flex items-center gap-2 ml-4">
+        <a href="{{ route('admin.transactions.create') }}" 
+           class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-orange-600 border border-slate-200/80 transition flex items-center gap-1.5 shadow-2xs"
+           title="Buka Terminal Kasir POS">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <span>Kasir POS</span>
+        </a>
+
+        <livewire:components.incoming-booking-badge type="button" />
+    </div>
+    
     <div class="flex items-center gap-3 sm:gap-4 ml-auto">
         @if(auth()->check() && auth()->user()->role === 'kasir')
         <!-- Lock Screen Button (Hanya untuk Kasir) -->

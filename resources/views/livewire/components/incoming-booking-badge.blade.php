@@ -15,6 +15,20 @@
                 </span>
             @endif
         </a>
+    @elseif($type === 'tab')
+        <a href="{{ route('admin.operations.incoming_booking') }}" 
+           class="px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 {{ ($active ?? request()->routeIs('admin.operations.incoming_booking')) ? 'bg-white text-navy shadow-sm ring-1 ring-slate-200/60' : 'text-slate-600 hover:text-navy hover:bg-white/60' }}"
+           title="Lihat Daftar Booking Online Masuk">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 {{ ($active ?? request()->routeIs('admin.operations.incoming_booking')) ? 'text-orange-600' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>Booking Masuk</span>
+            @if($count > 0)
+                <span class="inline-flex items-center justify-center min-w-[18px] h-4.5 px-1.5 text-[10px] font-black text-white bg-red-600 rounded-full shadow-sm animate-pulse">
+                    {{ $count }}
+                </span>
+            @endif
+        </a>
     @else
         <a href="{{ route('admin.operations.incoming_booking') }}" 
            class="btn text-xs font-bold {{ $count > 0 ? 'text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 shadow-xs' : 'text-gray-700 hover:text-[#101F42] bg-gray-100 hover:bg-gray-200/80' }} px-3.5 py-2 rounded-xl transition flex items-center gap-2 relative" 

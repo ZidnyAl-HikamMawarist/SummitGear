@@ -7,7 +7,8 @@ use App\Models\Rental;
 
 class IncomingBookingBadge extends Component
 {
-    public $type = 'button'; // 'button' | 'sidebar'
+    public $type = 'button'; // 'button' | 'sidebar' | 'tab'
+    public bool $active = false;
 
     public function getCountProperty()
     {
